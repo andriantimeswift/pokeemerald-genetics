@@ -94,7 +94,23 @@ enum {
     MON_DATA_SPEED2,
     MON_DATA_SPATK2,
     MON_DATA_SPDEF2,
+    MON_DATA_GENES1,
+    MON_DATA_GENES2,
+    MON_DATA_PHENOTYPE,
+    MON_DATA_NATURE,
 };
+
+//Gene index constants for reading/writing particular gene values.
+
+#define SHINY_GENE_INDEX 0
+#define ALBINO_GENE_INDEX 1
+#define MELANISTIC_GENE_INDEX 2
+#define ALT_PATTERN_GENE_INDEX 3
+#define ALT_PATTERN_ALT_COLOR_GENE_INDEX 4
+#define SPECIAL_TRAIT_GENE_INDEX 5
+#define ALBINO_FADE_GENE_INDEX 6
+#define MELANISTIC_FADE_GENE_INDEX 7
+
 
 struct PokemonSubstruct0
 {
@@ -103,7 +119,8 @@ struct PokemonSubstruct0
     u32 experience;
     u8 ppBonuses;
     u8 friendship;
-    u16 filler;
+    u8 genes1; //genes from first parent
+    u8 genes2; //genes from second parent
 };
 
 struct PokemonSubstruct1
@@ -285,6 +302,7 @@ struct BattlePokemon
     /*0x4C*/ u32 status1;
     /*0x50*/ u32 status2;
     /*0x54*/ u32 otId;
+             u8 phenotype;
 };
 
 struct SpeciesInfo
@@ -318,7 +336,6 @@ struct SpeciesInfo
  /* 0x19 */ u8 bodyColor : 7;
             u8 noFlip : 1;
 };
-
 struct BattleMove
 {
     u8 effect;
@@ -390,12 +407,16 @@ void ZeroBoxMonData(struct BoxPokemon *boxMon);
 void ZeroMonData(struct Pokemon *mon);
 void ZeroPlayerPartyMons(void);
 void ZeroEnemyPartyMons(void);
-void CreateMon(struct Pokemon *mon, u16 species, u8 level, u8 fixedIV, u8 hasFixedPersonality, u32 fixedPersonality, u8 otIdType, u32 fixedOtId);
-void CreateBoxMon(struct BoxPokemon *boxMon, u16 species, u8 level, u8 fixedIV, u8 hasFixedPersonality, u32 fixedPersonality, u8 otIdType, u32 fixedOtId);
-void CreateMonWithNature(struct Pokemon *mon, u16 species, u8 level, u8 fixedIV, u8 nature);
-void CreateMonWithGenderNatureLetter(struct Pokemon *mon, u16 species, u8 level, u8 fixedIV, u8 gender, u8 nature, u8 unownLetter);
+u8 Mutate (u8 genome, u16 probability);
+u32 GetShinyPersonality(u32 otId);
+u32 GetNonShinyPersonality(u32 otId);
+void CreateMon(struct Pokemon *mon, u16 species, u8 level, u8 fixedIV, u8 hasFixedPersonality, u32 fixedPersonality, u8 otIdType, u32 fixedOtId, u8 genes1, u8 genes2);
+void CreateBoxMon(struct BoxPokemon *boxMon, u16 species, u8 level, u8 fixedIV, u8 hasFixedPersonality, u32 fixedPersonality, u8 otIdType, u32 fixedOtId, u8 genes1, u8 genes2);
+void CreateMonWithNature(struct Pokemon *mon, u16 species, u8 level, u8 fixedIV, u8 nature, u8 genes1, u8 genes2);
+void CreateMonWithGenderNatureLetter(struct Pokemon *mon, u16 species, u8 level, u8 fixedIV, u8 gender, u8 nature, u8 unownLetter, u8 genes1, u8 genes2);
 void CreateMaleMon(struct Pokemon *mon, u16 species, u8 level);
-void CreateMonWithIVsPersonality(struct Pokemon *mon, u16 species, u8 level, u32 ivs, u32 personality);
+void CreateMonWithIVsPersonality(struct Pokemon *mon, u16 species, u8 level, u32 ivs, u32 personality, u8 genes1, u8 genes2);
+void CreateBoxMon(struct BoxPokemon *boxMon, u16 species, u8 level, u8 fixedIV, u8 hasFixedPersonality, u32 fixedPersonality, u8 otIdType, u32 fixedOtId, u8 genes1, u8 genes2);
 void CreateMonWithIVsOTID(struct Pokemon *mon, u16 species, u8 level, u8 *ivs, u32 otId);
 void CreateMonWithEVSpread(struct Pokemon *mon, u16 species, u8 level, u8 fixedIV, u8 evSpread);
 void CreateBattleTowerMon(struct Pokemon *mon, struct BattleTowerPokemon *src);
@@ -503,9 +524,13 @@ void PlayBattleBGM(void);
 void PlayMapChosenOrBattleBGM(u16 songId);
 void CreateTask_PlayMapChosenOrBattleBGM(u16 songId);
 const u32 *GetMonFrontSpritePal(struct Pokemon *mon);
-const u32 *GetMonSpritePalFromSpeciesAndPersonality(u16 species, u32 otId, u32 personality);
-const struct CompressedSpritePalette *GetMonSpritePalStruct(struct Pokemon *mon);
-const struct CompressedSpritePalette *GetMonSpritePalStructFromOtIdPersonality(u16 species, u32 otId , u32 personality);
+const u32 *GetMonSpritePalFromSpeciesAndPersonality(u16 species, u32 otId, u32 personality, u8 phenotype);
+struct CompressedSpritePalette GetMonSpritePalStruct(struct Pokemon *mon);
+void AlphaBlendPalettes(u16 basePalette[16], u16 modifierPalette[16], u32 coeff, u16 outputPalette[16]);
+void ModifyPalette(u16 basePalette[16], u16 modifierPalette[16], u16 outputPalette[16]);
+u32 *CompressSpritePalette(const u16 data[16]);
+void GetMonPaletteFromPhenotype(u16 *basePalette, u16 species, u8 phenotype, u16 *outputPalette, u16 *tag);
+struct CompressedSpritePalette GetMonSpritePalStructFromOtIdPersonality(u16 species, u32 otId , u32 personality, u8 phenotype);
 bool32 IsHMMove2(u16 move);
 bool8 IsMonSpriteNotFlipped(u16 species);
 s8 GetMonFlavorRelation(struct Pokemon *mon, u8 flavor);
@@ -516,6 +541,7 @@ void MonRestorePP(struct Pokemon *mon);
 void BoxMonRestorePP(struct BoxPokemon *boxMon);
 void SetMonPreventsSwitchingString(void);
 void SetWildMonHeldItem(void);
+bool8 IsShinyPhenotype(u8 phenotype);
 bool8 IsMonShiny(struct Pokemon *mon);
 bool8 IsShinyOtIdPersonality(u32 otId, u32 personality);
 const u8 *GetTrainerPartnerName(void);

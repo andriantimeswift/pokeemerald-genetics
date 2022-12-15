@@ -47,6 +47,24 @@ $(CASTFORMGFXDIR)/anim_front.4bpp: $(CASTFORMGFXDIR)/anim_front_normal_form.4bpp
                                    $(CASTFORMGFXDIR)/anim_front_snowy_form.4bpp
 	@cat $^ >$@
 
+$(CASTFORMGFXDIR)/front_special_trait.4bpp: $(CASTFORMGFXDIR)/front_special_trait_normal_form.4bpp \
+                              $(CASTFORMGFXDIR)/front_special_trait_sunny_form.4bpp \
+                              $(CASTFORMGFXDIR)/front_special_trait_rainy_form.4bpp \
+                              $(CASTFORMGFXDIR)/front_special_trait_snowy_form.4bpp
+	@cat $^ >$@
+
+$(CASTFORMGFXDIR)/back_special_trait.4bpp: $(CASTFORMGFXDIR)/back_special_trait_normal_form.4bpp \
+                             $(CASTFORMGFXDIR)/back_special_trait_sunny_form.4bpp \
+                             $(CASTFORMGFXDIR)/back_special_trait_rainy_form.4bpp \
+                             $(CASTFORMGFXDIR)/back_special_trait_snowy_form.4bpp
+	@cat $^ >$@
+
+$(CASTFORMGFXDIR)/anim_front_special_trait.4bpp: $(CASTFORMGFXDIR)/anim_front_special_trait_normal_form.4bpp \
+                                   $(CASTFORMGFXDIR)/anim_front_special_trait_sunny_form.4bpp \
+                                   $(CASTFORMGFXDIR)/anim_front_special_trait_rainy_form.4bpp \
+                                   $(CASTFORMGFXDIR)/anim_front_special_trait_snowy_form.4bpp
+	@cat $^ >$@
+
 $(CASTFORMGFXDIR)/normal.gbapal: $(CASTFORMGFXDIR)/normal_normal_form.gbapal \
                                  $(CASTFORMGFXDIR)/normal_sunny_form.gbapal \
                                  $(CASTFORMGFXDIR)/normal_rainy_form.gbapal \
@@ -59,7 +77,41 @@ $(CASTFORMGFXDIR)/shiny.gbapal: $(CASTFORMGFXDIR)/shiny_normal_form.gbapal \
                                 $(CASTFORMGFXDIR)/shiny_snowy_form.gbapal
 	@cat $^ >$@
 
+$(CASTFORMGFXDIR)/albino.gbapal: $(CASTFORMGFXDIR)/albino_normal_form.gbapal \
+                                 $(CASTFORMGFXDIR)/albino_sunny_form.gbapal \
+                                 $(CASTFORMGFXDIR)/albino_rainy_form.gbapal \
+                                 $(CASTFORMGFXDIR)/albino_snowy_form.gbapal
+	@cat $^ >$@
 
+$(CASTFORMGFXDIR)/albino_shiny.gbapal: $(CASTFORMGFXDIR)/albino_shiny_normal_form.gbapal \
+                                $(CASTFORMGFXDIR)/albino_shiny_sunny_form.gbapal \
+                                $(CASTFORMGFXDIR)/albino_shiny_rainy_form.gbapal \
+                                $(CASTFORMGFXDIR)/albino_shiny_snowy_form.gbapal
+	@cat $^ >$@
+
+$(CASTFORMGFXDIR)/melanistic.gbapal: $(CASTFORMGFXDIR)/albino_normal_form.gbapal \
+                                 $(CASTFORMGFXDIR)/albino_sunny_form.gbapal \
+                                 $(CASTFORMGFXDIR)/albino_rainy_form.gbapal \
+                                 $(CASTFORMGFXDIR)/albino_snowy_form.gbapal
+	@cat $^ >$@
+
+$(CASTFORMGFXDIR)/melanistic_shiny.gbapal: $(CASTFORMGFXDIR)/melanistic_shiny_normal_form.gbapal \
+                                $(CASTFORMGFXDIR)/melanistic_shiny_sunny_form.gbapal \
+                                $(CASTFORMGFXDIR)/melanistic_shiny_rainy_form.gbapal \
+                                $(CASTFORMGFXDIR)/melanistic_shiny_snowy_form.gbapal
+	@cat $^ >$@
+
+$(CASTFORMGFXDIR)/alt_pattern.gbapal: $(CASTFORMGFXDIR)/alt_pattern_normal_form.gbapal \
+                                 $(CASTFORMGFXDIR)/alt_pattern_sunny_form.gbapal \
+                                 $(CASTFORMGFXDIR)/alt_pattern_rainy_form.gbapal \
+                                 $(CASTFORMGFXDIR)/alt_pattern_snowy_form.gbapal
+	@cat $^ >$@
+
+$(CASTFORMGFXDIR)/alt_pattern_alt_color.gbapal: $(CASTFORMGFXDIR)/alt_pattern_alt_color_normal_form.gbapal \
+                                $(CASTFORMGFXDIR)/alt_pattern_alt_color_sunny_form.gbapal \
+                                $(CASTFORMGFXDIR)/alt_pattern_alt_color_rainy_form.gbapal \
+                                $(CASTFORMGFXDIR)/alt_pattern_alt_color_snowy_form.gbapal
+	@cat $^ >$@
 
 ### Tilesets ###
 

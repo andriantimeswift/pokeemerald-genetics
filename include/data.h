@@ -109,10 +109,18 @@ extern const union AffineAnimCmd *const gAffineAnims_BattleSpriteContest[];
 extern const union AnimCmd *const gAnims_MonPic[];
 extern const struct MonCoords gMonFrontPicCoords[];
 extern const struct CompressedSpriteSheet gMonStillFrontPicTable[];
+extern const struct CompressedSpriteSheet gMonStillFrontPicSpecialTraitTable[];
 extern const struct MonCoords gMonBackPicCoords[];
 extern const struct CompressedSpriteSheet gMonBackPicTable[];
+extern const struct CompressedSpriteSheet gMonBackPicSpecialTraitTable[];
 extern const struct CompressedSpritePalette gMonPaletteTable[];
 extern const struct CompressedSpritePalette gMonShinyPaletteTable[];
+extern const struct CompressedSpritePalette gMonAlbinoPaletteTable[];
+extern const struct CompressedSpritePalette gMonMelanisticPaletteTable[];
+extern const struct CompressedSpritePalette gMonAlbinoShinyPaletteTable[];
+extern const struct CompressedSpritePalette gMonMelanisticShinyPaletteTable[];
+extern const struct CompressedSpritePalette gMonAltPatternPaletteTable[];
+extern const struct CompressedSpritePalette gMonAltPatternAltColorPaletteTable[];
 extern const union AnimCmd *const *const gTrainerFrontAnimsPtrTable[];
 extern const struct MonCoords gTrainerFrontPicCoords[];
 extern const struct CompressedSpriteSheet gTrainerFrontPicTable[];
@@ -126,10 +134,12 @@ extern const u8 gEnemyMonElevation[NUM_SPECIES];
 
 extern const union AnimCmd *const *const gMonFrontAnimsPtrTable[];
 extern const struct CompressedSpriteSheet gMonFrontPicTable[];
+extern const struct CompressedSpriteSheet gMonFrontPicSpecialTraitTable[];
 
 extern const struct Trainer gTrainers[];
 extern const u8 gTrainerClassNames[][13];
 extern const u8 gSpeciesNames[][POKEMON_NAME_LENGTH + 1];
 extern const u8 gMoveNames[MOVES_COUNT][MOVE_NAME_LENGTH + 1];
+extern const u8 *const gZMoveNames[];
 
 #endif // GUARD_DATA_H

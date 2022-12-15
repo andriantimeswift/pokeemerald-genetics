@@ -1074,9 +1074,12 @@ void GetConditionMenuMonGfx(void *tilesDst, void *palDst, u16 boxId, u16 monId, 
         u16 species = GetBoxOrPartyMonData(boxId, monId, MON_DATA_SPECIES2, NULL);
         u32 trainerId = GetBoxOrPartyMonData(boxId, monId, MON_DATA_OT_ID, NULL);
         u32 personality = GetBoxOrPartyMonData(boxId, monId, MON_DATA_PERSONALITY, NULL);
+        u8 phenotype = GetBoxOrPartyMonData(boxId, monId, MON_DATA_PHENOTYPE, NULL);
+        const u32 *compressedPalette;
 
-        LoadSpecialPokePic(&gMonFrontPicTable[species], tilesDst, species, personality, TRUE);
-        LZ77UnCompWram(GetMonSpritePalFromSpeciesAndPersonality(species, trainerId, personality), palDst);
+        LoadSpecialPokePic(tilesDst, species, personality, TRUE, phenotype);
+        compressedPalette = GetMonSpritePalFromSpeciesAndPersonality(species, trainerId, personality, phenotype);
+        LZ77UnCompWram(compressedPalette, palDst);
     }
 }
 

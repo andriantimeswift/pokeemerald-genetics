@@ -712,6 +712,7 @@ struct ContestWinner
     u8 monName[POKEMON_NAME_LENGTH + 1];
     u8 trainerName[PLAYER_NAME_LENGTH + 1];
     u8 contestRank;
+    u8 phenotype;
 };
 
 struct Mail
@@ -743,6 +744,8 @@ struct DayCare
 {
     struct DaycareMon mons[DAYCARE_MON_COUNT];
     u32 offspringPersonality;
+    u8 offspringGenes1;
+    u8 offspringGenes2;
     u8 stepCounter;
 };
 

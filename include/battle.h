@@ -514,6 +514,7 @@ struct BattleSpriteInfo
     u16 flag_x8:1; // 0x8
     u16 hpNumbersNoBars:1; // 0x10
     u16 transformSpecies;
+    u16 transformPhenotype;
 };
 
 struct BattleAnimationInfo

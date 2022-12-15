@@ -109,6 +109,7 @@ struct ContestPokemon
     u8 unused[10];
     u32 personality;
     u32 otId;
+    u8 phenotype;
 };
 
 struct ContestTempSave
@@ -122,7 +123,9 @@ struct ContestTempSave
 struct ContestMoveAnimData
 {
     u16 species;
+    u8 phenotype;
     u16 targetSpecies;
+    u8 targetPhenotype;
     bool8 hasTargetAnim:1;
     u8 contestant;
     u32 personality;

@@ -361,26 +361,24 @@ static void VBlankCB_ContestPainting(void)
     TransferPlttBuffer();
 }
 
-static void InitContestMonPixels(u16 species, bool8 backPic)
+static void InitContestMonPixels(u16 species, bool8 backPic, u8 phenotype)
 {
-    const void *pal = GetMonSpritePalFromSpeciesAndPersonality(species, gContestPaintingWinner->trainerId, gContestPaintingWinner->personality);
+    const void *pal = GetMonSpritePalFromSpeciesAndPersonality(species, gContestPaintingWinner->trainerId, gContestPaintingWinner->personality, phenotype);
     LZDecompressVram(pal, gContestPaintingMonPalette);
     if (!backPic)
     {
-        HandleLoadSpecialPokePic_DontHandleDeoxys(
-            &gMonFrontPicTable[species],
-            gMonSpritesGfxPtr->sprites.ptr[B_POSITION_OPPONENT_LEFT],
-            species,
-            gContestPaintingWinner->personality);
+        HandleLoadSpecialPokePic_DontHandleDeoxys(TRUE,
+                                gMonSpritesGfxPtr->sprites.ptr[B_POSITION_OPPONENT_LEFT],
+                                species,
+                                gContestPaintingWinner->personality, phenotype);
         _InitContestMonPixels(gMonSpritesGfxPtr->sprites.ptr[B_POSITION_OPPONENT_LEFT], gContestPaintingMonPalette, (void *)gContestMonPixels);
     }
     else
     {
-        HandleLoadSpecialPokePic_DontHandleDeoxys(
-            &gMonBackPicTable[species],
-            gMonSpritesGfxPtr->sprites.ptr[B_POSITION_PLAYER_LEFT],
-            species,
-            gContestPaintingWinner->personality);
+        HandleLoadSpecialPokePic_DontHandleDeoxys(FALSE,
+                                gMonSpritesGfxPtr->sprites.ptr[B_POSITION_PLAYER_LEFT],
+                                species,
+                                gContestPaintingWinner->personality, phenotype);
         _InitContestMonPixels(gMonSpritesGfxPtr->sprites.ptr[B_POSITION_PLAYER_LEFT], gContestPaintingMonPalette, (void *)gContestMonPixels);
     }
 }
@@ -592,7 +590,7 @@ static void DoContestPaintingImageProcessing(u8 imageEffect)
 static void CreateContestPaintingPicture(u8 contestWinnerId, bool8 isForArtist)
 {
     AllocPaintingResources();
-    InitContestMonPixels(gContestPaintingWinner->species, FALSE);
+    InitContestMonPixels(gContestPaintingWinner->species, FALSE, gContestPaintingWinner->phenotype);
     DoContestPaintingImageProcessing(GetImageEffectForContestWinner(contestWinnerId));
     InitPaintingMonOamData(contestWinnerId);
     LoadContestPaintingFrame(contestWinnerId, isForArtist);

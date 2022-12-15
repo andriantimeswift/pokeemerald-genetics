@@ -400,7 +400,7 @@ static void GetMonNicknameLevelGender(u8 *nick, u8 *level, u8 *gender)
     StringGet_Nickname(nick);
 }
 
-static void GetMonSpeciesPersonalityOtId(u16 *species, u32 *personality, u32 *otId)
+static void GetMonSpeciesPersonalityOtId(u16 *species, u32 *personality, u32 *otId, u8 *phenotype)
 {
     struct Pokenav_RibbonsSummaryList *list = GetSubstructPtr(POKENAV_SUBSTRUCT_RIBBONS_SUMMARY_LIST);
     struct PokenavMonList *mons = list->monList;
@@ -413,6 +413,7 @@ static void GetMonSpeciesPersonalityOtId(u16 *species, u32 *personality, u32 *ot
         *species = GetMonData(mon, MON_DATA_SPECIES);
         *personality = GetMonData(mon, MON_DATA_PERSONALITY);
         *otId = GetMonData(mon, MON_DATA_OT_ID);
+        *phenotype = GetMonData(mon, MON_DATA_PHENOTYPE);
     }
     else
     {
@@ -421,6 +422,7 @@ static void GetMonSpeciesPersonalityOtId(u16 *species, u32 *personality, u32 *ot
         *species = GetBoxMonData(boxMon, MON_DATA_SPECIES);
         *personality = GetBoxMonData(boxMon, MON_DATA_PERSONALITY);
         *otId = GetBoxMonData(boxMon, MON_DATA_OT_ID);
+        *phenotype = GetBoxMonData(boxMon, MON_DATA_PHENOTYPE);
     }
 }
 
@@ -941,8 +943,9 @@ static void ResetSpritesAndDrawMonFrontPic(struct Pokenav_RibbonsSummaryMenu *me
 {
     u16 species;
     u32 personality, otId;
+    u8 phenotype;
 
-    GetMonSpeciesPersonalityOtId(&species, &personality, &otId);
+    GetMonSpeciesPersonalityOtId(&species, &personality, &otId, &phenotype);
     ResetAllPicSprites();
     menu->monSpriteId = DrawRibbonsMonFrontPic(MON_SPRITE_X_ON, MON_SPRITE_Y);
     PokenavFillPalette(15, 0);
@@ -960,9 +963,10 @@ static u16 DrawRibbonsMonFrontPic(s32 x, s32 y)
 {
     u16 species, spriteId;
     u32 personality, otId;
+    u8 phenotype;
 
-    GetMonSpeciesPersonalityOtId(&species, &personality, &otId);
-    spriteId = CreateMonPicSprite_HandleDeoxys(species, otId, personality, TRUE, MON_SPRITE_X_ON, MON_SPRITE_Y, 15, TAG_NONE);
+    GetMonSpeciesPersonalityOtId(&species, &personality, &otId, &phenotype);
+    spriteId = CreateMonPicSprite_HandleDeoxys(species, otId, personality, TRUE, MON_SPRITE_X_ON, MON_SPRITE_Y, 15, TAG_NONE, phenotype);
     gSprites[spriteId].oam.priority = 0;
     return spriteId;
 }

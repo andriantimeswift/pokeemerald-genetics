@@ -522,6 +522,7 @@ static void GetMonConditionGraphData(s16 listId, u8 loadId)
 static void ConditionGraphDrawMonPic(s16 listId, u8 loadId)
 {
     u16 boxId, monId, species;
+    u8 phenotype;
     u32 personality, tid;
     struct Pokenav_ConditionMenu *menu = GetSubstructPtr(POKENAV_SUBSTRUCT_CONDITION_GRAPH_MENU);
     struct PokenavMonList *monListPtr = GetSubstructPtr(POKENAV_SUBSTRUCT_MON_LIST);
@@ -534,8 +535,9 @@ static void ConditionGraphDrawMonPic(s16 listId, u8 loadId)
     species = GetBoxOrPartyMonData(boxId, monId, MON_DATA_SPECIES2, NULL);
     tid = GetBoxOrPartyMonData(boxId, monId, MON_DATA_OT_ID, NULL);
     personality = GetBoxOrPartyMonData(boxId, monId, MON_DATA_PERSONALITY, NULL);
-    LoadSpecialPokePic(&gMonFrontPicTable[species], menu->monPicGfx[loadId], species, personality, TRUE);
-    LZ77UnCompWram(GetMonSpritePalFromSpeciesAndPersonality(species, tid, personality), menu->monPal[loadId]);
+    phenotype = GetBoxOrPartyMonData(boxId, monId, MON_DATA_PHENOTYPE, NULL);
+    LoadSpecialPokePic(menu->monPicGfx[loadId], species, personality, TRUE, phenotype);
+    LZ77UnCompWram(GetMonSpritePalFromSpeciesAndPersonality(species, tid, personality, phenotype), menu->monPal[loadId]);
 }
 
 u16 GetMonListCount(void)

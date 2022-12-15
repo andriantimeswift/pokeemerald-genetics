@@ -17,16 +17,14 @@ void LoadCompressedSpritePaletteOverrideBuffer(const struct CompressedSpritePale
 bool8 LoadCompressedSpritePaletteUsingHeap(const struct CompressedSpritePalette *src);
 
 void DecompressPicFromTable(const struct CompressedSpriteSheet *src, void *buffer, s32 species);
-void DecompressPicFromTable_2(const struct CompressedSpriteSheet *src, void *buffer, s32 species);
+void DecompressPicFromTable_2(void* buffer, s32 species, u32 personality, u8 phenotype);
 void DecompressPicFromTable_DontHandleDeoxys(const struct CompressedSpriteSheet *src, void *buffer, s32 species);
 
-void HandleLoadSpecialPokePic(const struct CompressedSpriteSheet *src, void *dest, s32 species, u32 personality);
-void HandleLoadSpecialPokePic_2(const struct CompressedSpriteSheet *src, void *dest, s32 species, u32 personality);
-void HandleLoadSpecialPokePic_DontHandleDeoxys(const struct CompressedSpriteSheet *src, void *dest, s32 species, u32 personality);
+void HandleLoadSpecialPokePic(bool32 isFrontPic, void *dest, s32 species, u32 personality, u8 phenotype);
+void HandleLoadSpecialPokePic_DontHandleDeoxys(bool32 isFrontPic, void *dest, s32 species, u32 personality, u8 phenotype);
 
-void LoadSpecialPokePic(const struct CompressedSpriteSheet *src, void *dest, s32 species, u32 personality, bool8 isFrontPic);
-void LoadSpecialPokePic_2(const struct CompressedSpriteSheet *src, void *dest, s32 species, u32 personality, bool8 isFrontPic);
-void LoadSpecialPokePic_DontHandleDeoxys(const struct CompressedSpriteSheet *src, void *dest, s32 species, u32 personality, bool8 isFrontPic);
+void LoadSpecialPokePic(void *dest, s32 species, u32 personality, bool8 isFrontPic, u8 phenotype);
+void LoadSpecialPokePic_DontHandleDeoxys(void *dest, s32 species, u32 personality, bool8 isFrontPic, u8 phenotype);
 
 u32 GetDecompressedDataSize(const u32 *ptr);
 

@@ -316,6 +316,8 @@ static void CreateHatchedMon(struct Pokemon *egg, struct Pokemon *temp)
     u8 i, friendship, language, gameMet, markings, isEventLegal;
     u16 moves[MAX_MON_MOVES];
     u32 ivs[NUM_STATS];
+    u8 genes1;
+    u8 genes2;
 
     species = GetMonData(egg, MON_DATA_SPECIES);
 
@@ -323,6 +325,8 @@ static void CreateHatchedMon(struct Pokemon *egg, struct Pokemon *temp)
         moves[i] = GetMonData(egg, MON_DATA_MOVE1 + i);
 
     personality = GetMonData(egg, MON_DATA_PERSONALITY);
+    genes1 = GetMonData(egg, MON_DATA_GENES1);
+    genes2 = GetMonData(egg, MON_DATA_GENES2);
 
     for (i = 0; i < NUM_STATS; i++)
         ivs[i] = GetMonData(egg, MON_DATA_HP_IV + i);
@@ -334,7 +338,7 @@ static void CreateHatchedMon(struct Pokemon *egg, struct Pokemon *temp)
     pokerus = GetMonData(egg, MON_DATA_POKERUS);
     isEventLegal = GetMonData(egg, MON_DATA_EVENT_LEGAL);
 
-    CreateMon(temp, species, EGG_HATCH_LEVEL, USE_RANDOM_IVS, TRUE, personality, OT_ID_PLAYER_ID, 0);
+    CreateMonWithNature(temp, species, EGG_HATCH_LEVEL, USE_RANDOM_IVS, GetNatureFromPersonality(personality), genes1, genes2);
 
     for (i = 0; i < MAX_MON_MOVES; i++)
         SetMonData(temp, MON_DATA_MOVE1 + i,  &moves[i]);
@@ -425,6 +429,7 @@ static u8 EggHatchCreateMonSprite(u8 useAlt, u8 state, u8 partyId, u16 *speciesL
     u8 position = 0;
     u8 spriteId = 0;
     struct Pokemon *mon = NULL;
+    struct CompressedSpritePalette palette;
 
     if (useAlt == FALSE)
     {
@@ -444,16 +449,19 @@ static u8 EggHatchCreateMonSprite(u8 useAlt, u8 state, u8 partyId, u16 *speciesL
         {
             u16 species = GetMonData(mon, MON_DATA_SPECIES);
             u32 pid = GetMonData(mon, MON_DATA_PERSONALITY);
-            HandleLoadSpecialPokePic_DontHandleDeoxys(&gMonFrontPicTable[species],
+            u8 phenotype = GetMonData(mon, MON_DATA_PHENOTYPE);
+            HandleLoadSpecialPokePic_DontHandleDeoxys(TRUE,
                                                       gMonSpritesGfxPtr->sprites.ptr[(useAlt * 2) + B_POSITION_OPPONENT_LEFT],
-                                                      species, pid);
-            LoadCompressedSpritePalette(GetMonSpritePalStruct(mon));
+                                                      species, pid, phenotype);
+            palette = GetMonSpritePalStruct(mon);
+            LoadCompressedSpritePalette(&palette);
             *speciesLoc = species;
         }
         break;
     case 1:
         // Create mon sprite
-        SetMultiuseSpriteTemplateToPokemon(GetMonSpritePalStruct(mon)->tag, position);
+        palette = GetMonSpritePalStruct(mon);
+        SetMultiuseSpriteTemplateToPokemon(palette.tag, position);
         spriteId = CreateSprite(&gMultiuseSpriteTemplate, EGG_X, EGG_Y, 6);
         gSprites[spriteId].invisible = TRUE;
         gSprites[spriteId].callback = SpriteCallbackDummy;

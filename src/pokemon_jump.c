@@ -160,6 +160,7 @@ struct PokemonJump_MonInfo
     u16 species;
     u32 otId;
     u32 personality;
+    u8 phenotype;
 };
 
 struct PokemonJump_Player
@@ -658,6 +659,7 @@ static void InitJumpMonInfo(struct PokemonJump_MonInfo *monInfo, struct Pokemon 
     monInfo->species = GetMonData(mon, MON_DATA_SPECIES);
     monInfo->otId = GetMonData(mon, MON_DATA_OT_ID);
     monInfo->personality = GetMonData(mon, MON_DATA_PERSONALITY);
+    monInfo->phenotype = GetMonData(mon, MON_DATA_PHENOTYPE);
 }
 
 static void VBlankCB_PokemonJump(void)
@@ -2723,18 +2725,18 @@ static void CreateJumpMonSprite(struct PokemonJumpGfx *jumpGfx, struct PokemonJu
 
     if (buffer && unusedBuffer)
     {
-        HandleLoadSpecialPokePic(
-            &gMonStillFrontPicTable[monInfo->species],
-            buffer,
-            monInfo->species,
-            monInfo->personality);
+        HandleLoadSpecialPokePic(TRUE,
+                                buffer,
+                                monInfo->species,
+                                monInfo->personality, 
+                                monInfo->phenotype);
 
         spriteSheet.data = buffer;
         spriteSheet.tag = multiplayerId;
         spriteSheet.size = MON_PIC_SIZE;
         LoadSpriteSheet(&spriteSheet);
 
-        spritePalette.data = GetMonSpritePalFromSpeciesAndPersonality(monInfo->species, monInfo->otId, monInfo->personality);
+        spritePalette.data = GetMonSpritePalFromSpeciesAndPersonality(monInfo->species, monInfo->otId, monInfo->personality, monInfo->phenotype);
         spritePalette.tag = multiplayerId;
         LoadCompressedSpritePalette(&spritePalette);
 

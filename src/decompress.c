@@ -70,39 +70,62 @@ void DecompressPicFromTable(const struct CompressedSpriteSheet *src, void *buffe
     DuplicateDeoxysTiles(buffer, species);
 }
 
-void HandleLoadSpecialPokePic(const struct CompressedSpriteSheet *src, void *dest, s32 species, u32 personality)
+
+
+void HandleLoadSpecialPokePic(bool32 isFrontPic, void *dest, s32 species, u32 personality, u8 phenotype)
 {
-    bool8 isFrontPic;
-
-    if (src == &gMonFrontPicTable[species])
-        isFrontPic = TRUE; // frontPic
-    else
-        isFrontPic = FALSE; // backPic
-
-    LoadSpecialPokePic_2(src, dest, species, personality, isFrontPic);
+    LoadSpecialPokePic(dest, species, personality, isFrontPic, phenotype);
 }
 
-void LoadSpecialPokePic(const struct CompressedSpriteSheet *src, void *dest, s32 species, u32 personality, bool8 isFrontPic)
+void LoadSpecialPokePic(void *dest, s32 species, u32 personality, bool8 isFrontPic, u8 phenotype)
 {
     if (species == SPECIES_UNOWN)
     {
-        u16 i = GET_UNOWN_LETTER(personality);
+        u16 id = GET_UNOWN_LETTER(personality);
 
         // The other Unowns are separate from Unown A.
-        if (i == 0)
-            i = SPECIES_UNOWN;
+        if (id == 0)
+            id = SPECIES_UNOWN;
         else
-            i += SPECIES_UNOWN_B - 1;
+            id += SPECIES_UNOWN_B - 1;
 
-        if (!isFrontPic)
-            LZ77UnCompWram(gMonBackPicTable[i].data, dest);
+         if (isFrontPic)
+            if ((phenotype >> SPECIAL_TRAIT_GENE_INDEX) & 1)
+                LZ77UnCompWram(gMonFrontPicSpecialTraitTable[id].data, dest);
+            else
+                LZ77UnCompWram(gMonFrontPicTable[id].data, dest);
         else
-            LZ77UnCompWram(gMonFrontPicTable[i].data, dest);
+            if ((phenotype >> SPECIAL_TRAIT_GENE_INDEX) & 1)
+                LZ77UnCompWram(gMonBackPicSpecialTraitTable[id].data, dest);
+            else
+                LZ77UnCompWram(gMonBackPicTable[id].data, dest);
     }
     else if (species > NUM_SPECIES) // is species unknown? draw the ? icon
-        LZ77UnCompWram(gMonFrontPicTable[0].data, dest);
+    {
+        if (isFrontPic)
+            LZ77UnCompWram(gMonFrontPicTable[0].data, dest);
+        else
+            LZ77UnCompWram(gMonBackPicTable[0].data, dest);
+    }
     else
-        LZ77UnCompWram(src->data, dest);
+    {
+        if (isFrontPic)
+            if ((phenotype >> SPECIAL_TRAIT_GENE_INDEX) & 1)
+            {
+                LZ77UnCompWram(gMonFrontPicSpecialTraitTable[species].data, dest);
+                DebugPrintf("Special Trait!", 0);
+            }
+            else
+                LZ77UnCompWram(gMonFrontPicTable[species].data, dest);
+        else
+            if ((phenotype >> SPECIAL_TRAIT_GENE_INDEX) & 1)
+            {
+                LZ77UnCompWram(gMonBackPicSpecialTraitTable[species].data, dest);
+                DebugPrintf("Special Trait!", 0);
+            }
+            else
+                LZ77UnCompWram(gMonBackPicTable[species].data, dest);
+    }
 
     DuplicateDeoxysTiles(dest, species);
     DrawSpindaSpots(species, personality, dest, isFrontPic);
@@ -294,52 +317,15 @@ bool8 LoadCompressedSpritePaletteUsingHeap(const struct CompressedSpritePalette 
     Free(buffer);
     return FALSE;
 }
-
-void DecompressPicFromTable_2(const struct CompressedSpriteSheet *src, void *buffer, s32 species) // a copy of DecompressPicFromTable
+void DecompressPicFromTable_2(void* buffer, s32 species, u32 personality, u8 phenotype)
 {
-    if (species > NUM_SPECIES)
-        LZ77UnCompWram(gMonFrontPicTable[0].data, buffer);
-    else
-        LZ77UnCompWram(src->data, buffer);
-    DuplicateDeoxysTiles(buffer, species);
-}
-
-void LoadSpecialPokePic_2(const struct CompressedSpriteSheet *src, void *dest, s32 species, u32 personality, bool8 isFrontPic) // a copy of LoadSpecialPokePic
-{
-    if (species == SPECIES_UNOWN)
+    if ((phenotype >> SPECIAL_TRAIT_GENE_INDEX) & 1)
     {
-        u16 i = GET_UNOWN_LETTER(personality);
-
-        // The other Unowns are separate from Unown A.
-        if (i == 0)
-            i = SPECIES_UNOWN;
-        else
-            i += SPECIES_UNOWN_B - 1;
-
-        if (!isFrontPic)
-            LZ77UnCompWram(gMonBackPicTable[i].data, dest);
-        else
-            LZ77UnCompWram(gMonFrontPicTable[i].data, dest);
+        DecompressPicFromTable(&gMonFrontPicSpecialTraitTable[species], buffer, species);
+        DebugPrintf("Special Trait!", 0);
     }
-    else if (species > NUM_SPECIES) // is species unknown? draw the ? icon
-        LZ77UnCompWram(gMonFrontPicTable[0].data, dest);
     else
-        LZ77UnCompWram(src->data, dest);
-
-    DuplicateDeoxysTiles(dest, species);
-    DrawSpindaSpots(species, personality, dest, isFrontPic);
-}
-
-void HandleLoadSpecialPokePic_2(const struct CompressedSpriteSheet *src, void *dest, s32 species, u32 personality) // a copy of HandleLoadSpecialPokePic
-{
-    bool8 isFrontPic;
-
-    if (src == &gMonFrontPicTable[species])
-        isFrontPic = TRUE; // frontPic
-    else
-        isFrontPic = FALSE; // backPic
-
-    LoadSpecialPokePic_2(src, dest, species, personality, isFrontPic);
+        DecompressPicFromTable(&gMonFrontPicTable[species], buffer, species);
 }
 
 void DecompressPicFromTable_DontHandleDeoxys(const struct CompressedSpriteSheet *src, void *buffer, s32 species)
@@ -350,40 +336,60 @@ void DecompressPicFromTable_DontHandleDeoxys(const struct CompressedSpriteSheet 
         LZ77UnCompWram(src->data, buffer);
 }
 
-void HandleLoadSpecialPokePic_DontHandleDeoxys(const struct CompressedSpriteSheet *src, void *dest, s32 species, u32 personality)
+void HandleLoadSpecialPokePic_DontHandleDeoxys(bool32 isFrontPic, void *dest, s32 species, u32 personality, u8 phenotype)
 {
-    bool8 isFrontPic;
-
-    if (src == &gMonFrontPicTable[species])
-        isFrontPic = TRUE; // frontPic
-    else
-        isFrontPic = FALSE; // backPic
-
-    LoadSpecialPokePic_DontHandleDeoxys(src, dest, species, personality, isFrontPic);
+    LoadSpecialPokePic_DontHandleDeoxys(dest, species, personality, isFrontPic, phenotype);
 }
 
-void LoadSpecialPokePic_DontHandleDeoxys(const struct CompressedSpriteSheet *src, void *dest, s32 species, u32 personality, bool8 isFrontPic)
+void LoadSpecialPokePic_DontHandleDeoxys(void *dest, s32 species, u32 personality, bool8 isFrontPic, u8 phenotype)
 {
     if (species == SPECIES_UNOWN)
     {
-        u16 i = GET_UNOWN_LETTER(personality);
+        u16 id = GET_UNOWN_LETTER(personality);
 
         // The other Unowns are separate from Unown A.
-        if (i == 0)
-            i = SPECIES_UNOWN;
+        if (id == 0)
+            id = SPECIES_UNOWN;
         else
-            i += SPECIES_UNOWN_B - 1;
+            id += SPECIES_UNOWN_B - 1;
 
-        if (!isFrontPic)
-            LZ77UnCompWram(gMonBackPicTable[i].data, dest);
+         if (isFrontPic)
+            if ((phenotype >> SPECIAL_TRAIT_GENE_INDEX) & 1)
+                LZ77UnCompWram(gMonFrontPicSpecialTraitTable[id].data, dest);
+            else
+                LZ77UnCompWram(gMonFrontPicTable[id].data, dest);
         else
-            LZ77UnCompWram(gMonFrontPicTable[i].data, dest);
+            if ((phenotype >> SPECIAL_TRAIT_GENE_INDEX) & 1)
+                LZ77UnCompWram(gMonBackPicSpecialTraitTable[id].data, dest);
+            else
+                LZ77UnCompWram(gMonBackPicTable[id].data, dest);
     }
     else if (species > NUM_SPECIES) // is species unknown? draw the ? icon
-        LZ77UnCompWram(gMonFrontPicTable[0].data, dest);
+    {
+        if (isFrontPic)
+            LZ77UnCompWram(gMonFrontPicTable[0].data, dest);
+        else
+            LZ77UnCompWram(gMonBackPicTable[0].data, dest);
+    }
     else
-        LZ77UnCompWram(src->data, dest);
-
+    {
+        if (isFrontPic)
+            if ((phenotype >> SPECIAL_TRAIT_GENE_INDEX) & 1)
+            {
+                LZ77UnCompWram(gMonFrontPicSpecialTraitTable[species].data, dest);
+                DebugPrintf("Special Trait!", 0);
+            }
+            else
+                LZ77UnCompWram(gMonFrontPicTable[species].data, dest);
+        else
+            if ((phenotype >> SPECIAL_TRAIT_GENE_INDEX) & 1)
+            {
+                LZ77UnCompWram(gMonBackPicSpecialTraitTable[species].data, dest);
+                DebugPrintf("Special Trait!", 0);
+            }
+            else
+                LZ77UnCompWram(gMonBackPicTable[species].data, dest);
+    }
     DrawSpindaSpots(species, personality, dest, isFrontPic);
 }
 

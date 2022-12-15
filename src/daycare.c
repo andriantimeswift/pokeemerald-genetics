@@ -374,6 +374,8 @@ static void ClearAllDaycareData(struct DayCare *daycare)
         ClearDaycareMon(&daycare->mons[i]);
 
     daycare->offspringPersonality = 0;
+    daycare->offspringGenes1 = 0;
+    daycare->offspringGenes2 = 0;
     daycare->stepCounter = 0;
 }
 
@@ -454,10 +456,29 @@ static s32 GetParentToInheritNature(struct DayCare *daycare)
     return parent;
 }
 
+static void InheritGenes(struct DayCare *daycare)
+{
+    u8 n;
+    u8 babyGenes1;
+    u8 babyGenes2;
+
+    // Randomly select which of the first parent's genes are passed on
+    n = Random() >> 8;
+    babyGenes1 = (GetBoxMonData(&daycare->mons[0].mon, MON_DATA_GENES1) & n) | (GetBoxMonData(&daycare->mons[0].mon, MON_DATA_GENES2) & ~n);
+
+    // Randomly select which of the second parent's genes are passed on
+    n = Random() >> 8;
+    babyGenes2 = (GetBoxMonData(&daycare->mons[1].mon, MON_DATA_GENES1) & n) | (GetBoxMonData(&daycare->mons[1].mon, MON_DATA_GENES2) & ~n);
+
+    daycare->offspringGenes1 = Mutate(babyGenes1, EGG_MUTATION_ODDS);
+    daycare->offspringGenes2 = Mutate(babyGenes2, EGG_MUTATION_ODDS);
+}
+
 static void _TriggerPendingDaycareEgg(struct DayCare *daycare)
 {
     s32 parent;
     s32 natureTries = 0;
+    InheritGenes(daycare);
 
     SeedRng2(gMain.vblankCounter2);
     parent = GetParentToInheritNature(daycare);
@@ -836,7 +857,7 @@ void CreateEgg(struct Pokemon *mon, u16 species, bool8 setHotSpringsLocation)
     u8 metLocation;
     u8 isEgg;
 
-    CreateMon(mon, species, EGG_HATCH_LEVEL, USE_RANDOM_IVS, FALSE, 0, OT_ID_PLAYER_ID, 0);
+    CreateMon(mon, species, EGG_HATCH_LEVEL, USE_RANDOM_IVS, FALSE, 0, OT_ID_PLAYER_ID, 0, Mutate(0, EGG_MUTATION_ODDS), Mutate(0, EGG_MUTATION_ODDS));
     metLevel = 0;
     ball = ITEM_POKE_BALL;
     language = LANGUAGE_JAPANESE;
@@ -861,9 +882,11 @@ static void SetInitialEggData(struct Pokemon *mon, u16 species, struct DayCare *
     u16 ball;
     u8 metLevel;
     u8 language;
+    u32 nature = GetNatureFromPersonality(personality);
 
     personality = daycare->offspringPersonality;
-    CreateMon(mon, species, EGG_HATCH_LEVEL, USE_RANDOM_IVS, TRUE, personality, OT_ID_PLAYER_ID, 0);
+    
+    CreateMonWithNature(mon, species, EGG_HATCH_LEVEL, USE_RANDOM_IVS, nature, daycare->offspringGenes1, daycare->offspringGenes1);
     metLevel = 0;
     ball = ITEM_POKE_BALL;
     language = LANGUAGE_JAPANESE;

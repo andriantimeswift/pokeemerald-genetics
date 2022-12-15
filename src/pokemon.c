@@ -10,6 +10,7 @@
 #include "battle_setup.h"
 #include "battle_tower.h"
 #include "data.h"
+#include "decompress.h"
 #include "event_data.h"
 #include "evolution_scene.h"
 #include "field_specials.h"
@@ -44,6 +45,7 @@
 #include "constants/items.h"
 #include "constants/layouts.h"
 #include "constants/moves.h"
+#include "constants/rgb.h"
 #include "constants/songs.h"
 #include "constants/trainers.h"
 #include "constants/union_room.h"
@@ -2184,33 +2186,91 @@ void ZeroEnemyPartyMons(void)
     for (i = 0; i < PARTY_SIZE; i++)
         ZeroMonData(&gEnemyParty[i]);
 }
+u32 UPow(u32 a, u32 b)
+{
+    u32 output = 1;
+    u32 i;
 
-void CreateMon(struct Pokemon *mon, u16 species, u8 level, u8 fixedIV, u8 hasFixedPersonality, u32 fixedPersonality, u8 otIdType, u32 fixedOtId)
+    for(i = 0; i < b; i++)
+    {
+        output = output * a;
+    }
+    return output;
+}
+
+u32 IntToBinary (u8 num)
+{
+    u32 output = 0;
+    u32 i;
+    for (i = 0; i < 8; i++)
+    {
+        output = output + (((num >> i) & 1) * UPow(10, i));
+    }
+    return output;
+}
+
+u8 Mutate(u8 genome, u16 probability)
+{
+    u32 i;
+    u8 output = genome;
+    for (i = 0; i < 8; i++)
+    {
+        if (Random() < probability)
+            output ^= 1 << i;
+    }
+    return output;
+}
+
+u32 GetShinyPersonality(u32 otId)
+{
+    u32 shinyValue;
+    u32 personality;
+    do
+    {
+        // Choose random personalities until one results in a shiny Pokémon
+        personality = Random32();
+        shinyValue = GET_SHINY_VALUE(otId, personality);
+    } while (shinyValue >= SHINY_ODDS);
+    return personality;
+}
+u32 GetNonShinyPersonality(u32 otId)
+{
+    u32 shinyValue;
+    u32 personality;
+    do
+    {
+        // Choose random personalities until one results in a non-shiny Pokémon
+        personality = Random32();
+        shinyValue = GET_SHINY_VALUE(otId, personality);
+    } while (shinyValue < SHINY_ODDS);
+    return personality;
+}
+
+void CreateMon(struct Pokemon *mon, u16 species, u8 level, u8 fixedIV, u8 hasFixedPersonality, u32 fixedPersonality, u8 otIdType, u32 fixedOtId, u8 genes1, u8 genes2)
 {
     u32 mail;
     ZeroMonData(mon);
-    CreateBoxMon(&mon->box, species, level, fixedIV, hasFixedPersonality, fixedPersonality, otIdType, fixedOtId);
+    CreateBoxMon(&mon->box, species, level, fixedIV, hasFixedPersonality, fixedPersonality, otIdType, fixedOtId, genes1, genes2);
     SetMonData(mon, MON_DATA_LEVEL, &level);
     mail = MAIL_NONE;
     SetMonData(mon, MON_DATA_MAIL, &mail);
     CalculateMonStats(mon);
 }
 
-void CreateBoxMon(struct BoxPokemon *boxMon, u16 species, u8 level, u8 fixedIV, u8 hasFixedPersonality, u32 fixedPersonality, u8 otIdType, u32 fixedOtId)
+void CreateBoxMon(struct BoxPokemon *boxMon, u16 species, u8 level, u8 fixedIV, u8 hasFixedPersonality, u32 fixedPersonality, u8 otIdType, u32 fixedOtId, u8 genes1, u8 genes2)
 {
     u8 speciesName[POKEMON_NAME_LENGTH + 1];
     u32 personality;
     u32 value;
     u16 checksum;
+    u8 i;
+    u8 availableIVs[NUM_STATS];
+    DebugPrintf("Input Genes 1: %d", IntToBinary(genes1));
+    DebugPrintf("Input Genes 2: %d", IntToBinary(genes2));
 
     ZeroBoxMonData(boxMon);
 
-    if (hasFixedPersonality)
-        personality = fixedPersonality;
-    else
-        personality = Random32();
-
-    SetBoxMonData(boxMon, MON_DATA_PERSONALITY, &personality);
+    personality = Random32();
 
     // Determine original trainer ID
     if (otIdType == OT_ID_RANDOM_NO_SHINY)
@@ -2226,6 +2286,14 @@ void CreateBoxMon(struct BoxPokemon *boxMon, u16 species, u8 level, u8 fixedIV, 
     else if (otIdType == OT_ID_PRESET)
     {
         value = fixedOtId;
+        if(IsShinyPhenotype(genes1 & genes2))
+        {
+            personality = GetShinyPersonality(value);
+        }
+        else
+        {
+            personality = GetNonShinyPersonality(value);
+        }
     }
     else // Player is the OT
     {
@@ -2233,13 +2301,47 @@ void CreateBoxMon(struct BoxPokemon *boxMon, u16 species, u8 level, u8 fixedIV, 
               | (gSaveBlock2Ptr->playerTrainerId[1] << 8)
               | (gSaveBlock2Ptr->playerTrainerId[2] << 16)
               | (gSaveBlock2Ptr->playerTrainerId[3] << 24);
+        
+        if (! hasFixedPersonality)
+        {
+            if(IsShinyPhenotype(genes1 & genes2))
+            {
+                personality = GetShinyPersonality(value);
+            }
+            else
+            {
+                personality = GetNonShinyPersonality(value);
+            }
+        }
     }
 
+    DebugPrintf("Mid Genes 1: %d", IntToBinary(genes1));
+    DebugPrintf("Mid Genes 2: %d", IntToBinary(genes2));
+
+    if (hasFixedPersonality)
+    {
+        personality = fixedPersonality;
+        
+        if(IsShinyOtIdPersonality(value, personality))
+        {
+            genes1 |= 1 << SHINY_GENE_INDEX;
+            genes2 |= 1 << SHINY_GENE_INDEX;
+        }
+        else
+        {
+            if(IsShinyPhenotype (genes1 & genes2))
+                genes1 &= ~(1 << SHINY_GENE_INDEX); //set one shiny gene bit to 0            
+        }
+    }
+
+    SetBoxMonData(boxMon, MON_DATA_PERSONALITY, &personality);
     SetBoxMonData(boxMon, MON_DATA_OT_ID, &value);
 
     checksum = CalculateBoxMonChecksum(boxMon);
     SetBoxMonData(boxMon, MON_DATA_CHECKSUM, &checksum);
     EncryptBoxMon(boxMon);
+    SetBoxMonData(boxMon, MON_DATA_GENES1, &genes1);
+    SetBoxMonData(boxMon, MON_DATA_GENES2, &genes2);
     GetSpeciesName(speciesName, species);
     SetBoxMonData(boxMon, MON_DATA_NICKNAME, speciesName);
     SetBoxMonData(boxMon, MON_DATA_LANGUAGE, &gGameLanguage);
@@ -2293,22 +2395,36 @@ void CreateBoxMon(struct BoxPokemon *boxMon, u16 species, u8 level, u8 fixedIV, 
     }
 
     GiveBoxMonInitialMoveset(boxMon);
-}
 
-void CreateMonWithNature(struct Pokemon *mon, u16 species, u8 level, u8 fixedIV, u8 nature)
+    DebugPrintf("Output Genes1: %d", IntToBinary(genes1));
+    DebugPrintf("Output Genes2: %d", IntToBinary(genes2));
+    DebugPrintf("Output Phenotype: %d", IntToBinary(GetBoxMonData(boxMon, MON_DATA_PHENOTYPE)));
+    }
+
+void CreateMonWithNature(struct Pokemon *mon, u16 species, u8 level, u8 fixedIV, u8 nature, u8 genes1, u8 genes2)
 {
     u32 personality;
-
+    u32 otId= gSaveBlock2Ptr->playerTrainerId[0]
+              | (gSaveBlock2Ptr->playerTrainerId[1] << 8)
+              | (gSaveBlock2Ptr->playerTrainerId[2] << 16)
+              | (gSaveBlock2Ptr->playerTrainerId[3] << 24);
     do
     {
-        personality = Random32();
+        if(IsShinyPhenotype(genes1 & genes2))
+        {
+            personality = GetShinyPersonality(otId);
+        }
+        else
+        {
+            personality = GetNonShinyPersonality(otId);
+        }
     }
     while (nature != GetNatureFromPersonality(personality));
-
-    CreateMon(mon, species, level, fixedIV, TRUE, personality, OT_ID_PLAYER_ID, 0);
+    
+    CreateMon(mon, species, level, fixedIV, TRUE, personality, OT_ID_PLAYER_ID, 0, genes1, genes2);
 }
 
-void CreateMonWithGenderNatureLetter(struct Pokemon *mon, u16 species, u8 level, u8 fixedIV, u8 gender, u8 nature, u8 unownLetter)
+void CreateMonWithGenderNatureLetter(struct Pokemon *mon, u16 species, u8 level, u8 fixedIV, u8 gender, u8 nature, u8 unownLetter, u8 genes1, u8 genes2)
 {
     u32 personality;
 
@@ -2318,7 +2434,14 @@ void CreateMonWithGenderNatureLetter(struct Pokemon *mon, u16 species, u8 level,
 
         do
         {
-            personality = Random32();
+            if(IsShinyPhenotype(genes1 & genes2))
+            {
+                personality = GetShinyPersonality(OT_ID_PLAYER_ID);
+            }
+            else
+            {
+                personality = GetNonShinyPersonality(OT_ID_PLAYER_ID);
+            }
             actualLetter = GET_UNOWN_LETTER(personality);
         }
         while (nature != GetNatureFromPersonality(personality)
@@ -2329,13 +2452,20 @@ void CreateMonWithGenderNatureLetter(struct Pokemon *mon, u16 species, u8 level,
     {
         do
         {
-            personality = Random32();
+            if(IsShinyPhenotype(genes1 & genes2))
+            {
+                personality = GetShinyPersonality(OT_ID_PLAYER_ID);
+            }
+            else
+            {
+                personality = GetNonShinyPersonality(OT_ID_PLAYER_ID);
+            }
         }
         while (nature != GetNatureFromPersonality(personality)
             || gender != GetGenderFromSpeciesAndPersonality(species, personality));
     }
 
-    CreateMon(mon, species, level, fixedIV, TRUE, personality, OT_ID_PLAYER_ID, 0);
+    CreateMon(mon, species, level, fixedIV, TRUE, personality, OT_ID_PLAYER_ID, 0, genes1, genes2);
 }
 
 // This is only used to create Wally's Ralts.
@@ -2350,19 +2480,28 @@ void CreateMaleMon(struct Pokemon *mon, u16 species, u8 level)
         personality = Random32();
     }
     while (GetGenderFromSpeciesAndPersonality(species, personality) != MON_MALE);
-    CreateMon(mon, species, level, USE_RANDOM_IVS, TRUE, personality, OT_ID_PRESET, otId);
+    CreateMon(mon, species, level, USE_RANDOM_IVS, TRUE, personality, OT_ID_PRESET, otId, 0, 0);
 }
 
-void CreateMonWithIVsPersonality(struct Pokemon *mon, u16 species, u8 level, u32 ivs, u32 personality)
+void CreateMonWithIVsPersonality(struct Pokemon *mon, u16 species, u8 level, u32 ivs, u32 personality, u8 genes1, u8 genes2)
 {
-    CreateMon(mon, species, level, 0, TRUE, personality, OT_ID_PLAYER_ID, 0);
+    u8 genes = 0;
+    u32 value = gSaveBlock2Ptr->playerTrainerId[0]
+              | (gSaveBlock2Ptr->playerTrainerId[1] << 8)
+              | (gSaveBlock2Ptr->playerTrainerId[2] << 16)
+              | (gSaveBlock2Ptr->playerTrainerId[3] << 24);
+    if(IsShinyOtIdPersonality(value, personality))
+    {
+        genes |= 1 << SHINY_GENE_INDEX;
+    }
+    CreateMon(mon, species, level, 0, TRUE, personality, OT_ID_PLAYER_ID, 0, genes, genes);
     SetMonData(mon, MON_DATA_IVS, &ivs);
     CalculateMonStats(mon);
 }
 
 void CreateMonWithIVsOTID(struct Pokemon *mon, u16 species, u8 level, u8 *ivs, u32 otId)
 {
-    CreateMon(mon, species, level, 0, FALSE, 0, OT_ID_PRESET, otId);
+    CreateMon(mon, species, level, 0, FALSE, 0, OT_ID_PRESET, otId, 0, 0);
     SetMonData(mon, MON_DATA_HP_IV, &ivs[STAT_HP]);
     SetMonData(mon, MON_DATA_ATK_IV, &ivs[STAT_ATK]);
     SetMonData(mon, MON_DATA_DEF_IV, &ivs[STAT_DEF]);
@@ -2379,7 +2518,7 @@ void CreateMonWithEVSpread(struct Pokemon *mon, u16 species, u8 level, u8 fixedI
     u16 evAmount;
     u8 evsBits;
 
-    CreateMon(mon, species, level, fixedIV, FALSE, 0, OT_ID_PLAYER_ID, 0);
+    CreateMon(mon, species, level, fixedIV, FALSE, 0, OT_ID_PLAYER_ID, 0, 0, 0);
 
     evsBits = evSpread;
 
@@ -2411,7 +2550,7 @@ void CreateBattleTowerMon(struct Pokemon *mon, struct BattleTowerPokemon *src)
     u8 language;
     u8 value;
 
-    CreateMon(mon, src->species, src->level, 0, TRUE, src->personality, OT_ID_PRESET, src->otId);
+    CreateMon(mon, src->species, src->level, 0, TRUE, src->personality, OT_ID_PRESET, src->otId, 0, 0);
 
     for (i = 0; i < MAX_MON_MOVES; i++)
         SetMonMoveSlot(mon, src->moves[i], i);
@@ -2473,7 +2612,7 @@ void CreateBattleTowerMon_HandleLevel(struct Pokemon *mon, struct BattleTowerPok
     else
         level = src->level;
 
-    CreateMon(mon, src->species, level, 0, TRUE, src->personality, OT_ID_PRESET, src->otId);
+    CreateMon(mon, src->species, level, 0, TRUE, src->personality, OT_ID_PRESET, src->otId, 0, 0);
 
     for (i = 0; i < MAX_MON_MOVES; i++)
         SetMonMoveSlot(mon, src->moves[i], i);
@@ -2536,7 +2675,7 @@ void CreateApprenticeMon(struct Pokemon *mon, const struct Apprentice *src, u8 m
               TRUE,
               personality,
               OT_ID_PRESET,
-              otId);
+              otId, 0, 0);
 
     SetMonData(mon, MON_DATA_HELD_ITEM, &src->party[monId].item);
     for (i = 0; i < MAX_MON_MOVES; i++)
@@ -2558,6 +2697,7 @@ void CreateMonWithEVSpreadNatureOTID(struct Pokemon *mon, u16 species, u8 level,
     s32 statCount = 0;
     u8 evsBits;
     u16 evAmount;
+    u8 genes = 0;
 
     // i is reused as personality value
     do
@@ -2565,7 +2705,12 @@ void CreateMonWithEVSpreadNatureOTID(struct Pokemon *mon, u16 species, u8 level,
         i = Random32();
     } while (nature != GetNatureFromPersonality(i));
 
-    CreateMon(mon, species, level, fixedIV, TRUE, i, OT_ID_PRESET, otId);
+    if(IsShinyOtIdPersonality(otId, i))
+    {
+        genes |= 1 << SHINY_GENE_INDEX;
+    }
+
+    CreateMon(mon, species, level, fixedIV, TRUE, i, OT_ID_PRESET, otId, genes, genes);
     evsBits = evSpread;
     for (i = 0; i < NUM_STATS; i++)
     {
@@ -2627,7 +2772,7 @@ void CreateEventLegalMon(struct Pokemon *mon, u16 species, u8 level, u8 fixedIV,
 {
     bool32 isEventLegal = TRUE;
 
-    CreateMon(mon, species, level, fixedIV, hasFixedPersonality, fixedPersonality, otIdType, fixedOtId);
+    CreateMon(mon, species, level, fixedIV, hasFixedPersonality, fixedPersonality, otIdType, fixedOtId, Mutate(0, WILD_MUTATION_ODDS), Mutate(0, WILD_MUTATION_ODDS));
     SetMonData(mon, MON_DATA_EVENT_LEGAL, &isEventLegal);
 }
 
@@ -2806,7 +2951,7 @@ static u16 CalculateBoxMonChecksum(struct BoxPokemon *boxMon)
 
 #define CALC_STAT(base, iv, ev, statIndex, field)               \
 {                                                               \
-    u8 baseStat = gSpeciesInfo[species].base;                   \
+    u8 baseStat = gSpeciesInfo[species].base;                     \
     s32 n = (((2 * baseStat + iv + ev / 4) * level) / 100) + 5; \
     u8 nature = GetNature(mon);                                 \
     n = ModifyStatByNature(nature, n, statIndex);               \
@@ -4037,6 +4182,15 @@ u32 GetBoxMonData(struct BoxPokemon *boxMon, s32 field, u8 *data)
                 | (substruct3->worldRibbon << 26);
         }
         break;
+    case MON_DATA_GENES1:
+        retVal = substruct0->genes1;
+        break;
+    case MON_DATA_GENES2:
+        retVal = substruct0->genes2;  
+        break;  
+    case MON_DATA_PHENOTYPE:
+        retVal = (substruct0->genes1 & substruct0->genes2);  
+        break;
     default:
         break;
     }
@@ -4344,6 +4498,12 @@ void SetBoxMonData(struct BoxPokemon *boxMon, s32 field, const void *dataArg)
     case MON_DATA_EVENT_LEGAL:
         SET8(substruct3->eventLegal);
         break;
+    case MON_DATA_GENES1:
+        SET8(substruct0->genes1);
+        break;
+    case MON_DATA_GENES2:
+        SET8(substruct0->genes2);
+        break;
     case MON_DATA_IVS:
     {
         u32 ivs = data[0] | (data[1] << 8) | (data[2] << 16) | (data[3] << 24);
@@ -4527,7 +4687,7 @@ void CreateSecretBaseEnemyParty(struct SecretBase *secretBaseRecord)
                 TRUE,
                 gBattleResources->secretBase->party.personality[i],
                 OT_ID_RANDOM_NO_SHINY,
-                0);
+                0, 0, 0);
 
             SetMonData(&gEnemyParty[i], MON_DATA_HELD_ITEM, &gBattleResources->secretBase->party.heldItems[i]);
 
@@ -4651,6 +4811,7 @@ void CopyPlayerPartyMonToBattleData(u8 battlerId, u8 partyIndex)
     gBattleMons[battlerId].isEgg = GetMonData(&gPlayerParty[partyIndex], MON_DATA_IS_EGG, NULL);
     gBattleMons[battlerId].abilityNum = GetMonData(&gPlayerParty[partyIndex], MON_DATA_ABILITY_NUM, NULL);
     gBattleMons[battlerId].otId = GetMonData(&gPlayerParty[partyIndex], MON_DATA_OT_ID, NULL);
+    gBattleMons[battlerId].phenotype = GetMonData(&gPlayerParty[partyIndex], MON_DATA_PHENOTYPE, NULL);
     gBattleMons[battlerId].type1 = gSpeciesInfo[gBattleMons[battlerId].species].type1;
     gBattleMons[battlerId].type2 = gSpeciesInfo[gBattleMons[battlerId].species].type2;
     gBattleMons[battlerId].ability = GetAbilityBySpecies(gBattleMons[battlerId].species, gBattleMons[battlerId].abilityNum);
@@ -6445,40 +6606,236 @@ const u32 *GetMonFrontSpritePal(struct Pokemon *mon)
     u16 species = GetMonData(mon, MON_DATA_SPECIES2, 0);
     u32 otId = GetMonData(mon, MON_DATA_OT_ID, 0);
     u32 personality = GetMonData(mon, MON_DATA_PERSONALITY, 0);
-    return GetMonSpritePalFromSpeciesAndPersonality(species, otId, personality);
+    u8 phenotype = GetMonData(mon, MON_DATA_PHENOTYPE, 0);
+    return GetMonSpritePalFromSpeciesAndPersonality(species, otId, personality, phenotype);
 }
 
-const u32 *GetMonSpritePalFromSpeciesAndPersonality(u16 species, u32 otId, u32 personality)
+const u32 *GetMonSpritePalFromSpeciesAndPersonality(u16 species, u32 otId, u32 personality, u8 phenotype)
 {
     u32 shinyValue;
-
+    static const u32 *pal;
+    u16 decompressedPal[16];
+    u16 tempPal[16];
     if (species > NUM_SPECIES)
-        return gMonPaletteTable[SPECIES_NONE].data;
+        pal = gMonPaletteTable[SPECIES_NONE].data;
 
     shinyValue = GET_SHINY_VALUE(otId, personality);
     if (shinyValue < SHINY_ODDS)
-        return gMonShinyPaletteTable[species].data;
+        pal = gMonShinyPaletteTable[species].data;
     else
-        return gMonPaletteTable[species].data;
+        pal = gMonPaletteTable[species].data;
+
+    LZDecompressWram(pal, decompressedPal);
+
+    GetMonPaletteFromPhenotype(decompressedPal, species, phenotype, tempPal, 0);
+
+    pal = CompressSpritePalette(tempPal);
+    return pal;
+    //THIS IS THE PALETTE FUNCTION
 }
 
-const struct CompressedSpritePalette *GetMonSpritePalStruct(struct Pokemon *mon)
+struct CompressedSpritePalette GetMonSpritePalStruct(struct Pokemon *mon)
 {
     u16 species = GetMonData(mon, MON_DATA_SPECIES2, 0);
     u32 otId = GetMonData(mon, MON_DATA_OT_ID, 0);
     u32 personality = GetMonData(mon, MON_DATA_PERSONALITY, 0);
-    return GetMonSpritePalStructFromOtIdPersonality(species, otId, personality);
+    u8 phenotype = GetMonData(mon, MON_DATA_PHENOTYPE, 0);
+    return GetMonSpritePalStructFromOtIdPersonality(species, otId, personality, phenotype);
 }
 
-const struct CompressedSpritePalette *GetMonSpritePalStructFromOtIdPersonality(u16 species, u32 otId , u32 personality)
+//Returns a new palette which is the result of alpha blending foreground over background. Coeff must be between 0 and 16.
+void AlphaBlendPalettes(u16 basePalette[16], u16 modifierPalette[16], u32 coeff, u16 outputPalette[16])
+{
+    u32 coeffMax = 16;
+    u32 i;
+    for (i = 0; i < 16; i++)
+    {
+        struct PlttData *background = (struct PlttData *)&basePalette[i];
+        struct PlttData *foreground = (struct PlttData *)&modifierPalette[i];
+        outputPalette[i] = RGB(((foreground->r * coeff) / coeffMax) + ((background->r * (coeffMax - coeff))/coeffMax),
+                                    ((foreground->g * coeff) / coeffMax) + ((background->g * (coeffMax - coeff))/coeffMax),
+                                    ((foreground->b * coeff) / coeffMax) + ((background->b * (coeffMax - coeff))/coeffMax));  
+    } 
+}
+
+void ModifyPalette(u16 basePalette[16], u16 modifierPalette[16], u16 outputPalette[16])
+{
+    u32 i;
+    for (i = 0; i < 16; i++)
+    {
+        if (modifierPalette[i] != 0)
+            outputPalette[i] = modifierPalette[i];
+        else
+            outputPalette[i] = basePalette[i];
+    }  
+}
+
+// WARNING: You'll want to load the returned palette before you call CompressSpritePalette again, else you'll get weird results.
+u32 *CompressSpritePalette(const u16 data[16])
+{
+    static EWRAM_DATA u32 *csp;
+    static EWRAM_DATA u32 buffer[40 / sizeof(u32)];
+
+    int i, j;
+    const u8 *src = (const u8 *)data;
+    u8 *dest = (u8 *)buffer;
+
+    // Header.
+    *dest++ = 0x10;
+    *dest++ = 0x20;
+    *dest++ = 0x00;
+    *dest++ = 0x00;
+
+    for (i = 0; i < 0x20; i += 8)
+    {
+        *dest++ = 0x00;
+        for (j = 0; j < 8; j++)
+            *dest++ = *src++;
+
+    }
+
+    csp = buffer;
+    return csp;
+    //output = &csp;
+}
+
+void GetMonPaletteFromPhenotype(u16 basePalette[], u16 species, u8 phenotype, u16 outputPalette[], u16 *tag)
+{
+    u16 pal[16];
+    u16 albinoPal[16];
+    u16 *albinoTag;
+    u16 melanisticPal[16];
+    u16 *melanisticTag;
+    u16 tempPal[16];
+    u16 palCopy[16];
+    u32 i;
+    for(i = 0; i < 16; i++)
+    {
+        pal[i] = basePalette[i];
+    }
+
+    if (IsShinyPhenotype(phenotype))
+    {
+        LZDecompressWram(gMonAlbinoShinyPaletteTable[species].data, albinoPal);
+        LZDecompressWram(gMonMelanisticShinyPaletteTable[species].data, melanisticPal);
+        albinoTag = (u16 *) &gMonAlbinoShinyPaletteTable[species].tag;
+        melanisticTag = (u16 *) &gMonMelanisticShinyPaletteTable[species].tag;
+        DebugPrintf("Shiny!", 0);
+    }
+    else
+    {
+        LZDecompressWram(gMonAlbinoPaletteTable[species].data, albinoPal);
+        LZDecompressWram(gMonMelanisticPaletteTable[species].data, melanisticPal);
+        albinoTag = (u16 *) &gMonAlbinoPaletteTable[species].tag;
+        melanisticTag = (u16 *) &gMonMelanisticPaletteTable[species].tag;
+
+    }
+
+    if (((phenotype >> ALBINO_GENE_INDEX) & 1) && !((phenotype >> ALBINO_FADE_GENE_INDEX) & 1))
+    {
+        for(i = 0; i < 16; i++)
+        {
+            pal[i] = albinoPal[i];
+        }
+        tag = albinoTag;
+        DebugPrintf("Albino!", 0);
+    }
+
+    if (((phenotype >> MELANISTIC_GENE_INDEX) & 1) && !((phenotype >> MELANISTIC_FADE_GENE_INDEX) & 1))
+    {
+        for(i = 0; i < 16; i++)
+        {
+            pal[i] = melanisticPal[i];
+        }
+        tag = melanisticTag;
+        DebugPrintf("Melanistic!", 0);
+    }
+
+    if (((phenotype >> ALBINO_GENE_INDEX) & 1) && ((phenotype >> ALBINO_FADE_GENE_INDEX) & 1))
+    {
+        tag = albinoTag;
+        if (phenotype >> MELANISTIC_GENE_INDEX)
+        {
+            if (phenotype >> MELANISTIC_FADE_GENE_INDEX)
+            {
+                DebugPrintf("Albino Fade Melanistic Fade!", 0);
+                AlphaBlendPalettes(basePalette, albinoPal, 8, pal);
+                AlphaBlendPalettes(pal, melanisticPal, 8, pal);
+            }
+            else
+            {
+                AlphaBlendPalettes(melanisticPal, albinoPal, 8, pal);
+                DebugPrintf("Albino Fade Melanistic!", 0);
+            }
+        }
+        else
+        {
+            AlphaBlendPalettes(basePalette, albinoPal, 8, pal);
+            DebugPrintf("Albino Fade!", 0);
+        }
+    }
+
+    if (((phenotype >> MELANISTIC_GENE_INDEX) & 1) && ((phenotype >> MELANISTIC_FADE_GENE_INDEX) & 1))
+    {
+        tag = melanisticTag;
+        if (!(phenotype >> ALBINO_GENE_INDEX))
+        {
+            AlphaBlendPalettes(basePalette, melanisticPal, 8, pal);
+            DebugPrintf("Melanistic Fade Albino!", 0);
+        }
+    }
+
+    if ((phenotype >> ALT_PATTERN_GENE_INDEX) & 1)
+    {
+        
+        for(i = 0; i < 16; i++)
+        {
+            palCopy[i] = pal[i];
+        }
+        if (phenotype >> ALT_PATTERN_ALT_COLOR_GENE_INDEX)
+        {
+            LZDecompressWram(gMonAltPatternAltColorPaletteTable[species].data, tempPal);
+            DebugPrintf("Alt Pattern!", 0);
+        }
+        else
+        {
+            LZDecompressWram(gMonAltPatternPaletteTable[species].data, tempPal);
+            DebugPrintf("Alt Pattern Alt Color!", 0);
+        }
+
+        ModifyPalette(palCopy, tempPal, pal);
+    }
+
+    for(i = 0; i < 16; i++)
+    {
+        outputPalette[i] = pal[i];
+    }
+}
+
+struct CompressedSpritePalette GetMonSpritePalStructFromOtIdPersonality(u16 species, u32 otId , u32 personality, u8 phenotype)
 {
     u32 shinyValue;
+    u16 decompressedPal[16];
+    struct CompressedSpritePalette pal;
+    static u16 tempPal[16];
+    u32 i;
+    struct CompressedSpritePalette newPal;
+
 
     shinyValue = GET_SHINY_VALUE(otId, personality);
     if (shinyValue < SHINY_ODDS)
-        return &gMonShinyPaletteTable[species];
+        return gMonShinyPaletteTable[species];
     else
-        return &gMonPaletteTable[species];
+        return gMonPaletteTable[species];
+
+    LZDecompressWram(pal.data, decompressedPal);
+    newPal.tag = pal.tag;
+    GetMonPaletteFromPhenotype(decompressedPal, species, phenotype, tempPal, &newPal.tag);
+    newPal.data = CompressSpritePalette(tempPal);
+    pal = newPal;
+    return pal;
+    //THIS IS THE PALETTE FUNCTION?
+
 }
 
 bool32 IsHMMove2(u16 move)
@@ -6638,6 +6995,12 @@ void SetWildMonHeldItem(void)
             }
         }
     }
+}
+
+bool8 IsShinyPhenotype(u8 phenotype)
+{
+    bool8 isShiny = (phenotype >> SHINY_GENE_INDEX) & 1;
+    return isShiny;
 }
 
 bool8 IsMonShiny(struct Pokemon *mon)

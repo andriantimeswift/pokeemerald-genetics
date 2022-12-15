@@ -113,6 +113,7 @@ u8 GetBattlerSpriteCoord(u8 battlerId, u8 coordType)
 {
     u8 retVal;
     u16 species;
+    struct Pokemon *mon;
     struct BattleSpriteInfo *spriteInfo;
 
     if (IsContest())
@@ -143,21 +144,15 @@ u8 GetBattlerSpriteCoord(u8 battlerId, u8 coordType)
         else
         {
             if (GetBattlerSide(battlerId) != B_SIDE_PLAYER)
-            {
-                spriteInfo = gBattleSpritesDataPtr->battlerData;
-                if (!spriteInfo[battlerId].transformSpecies)
-                    species = GetMonData(&gEnemyParty[gBattlerPartyIndexes[battlerId]], MON_DATA_SPECIES);
-                else
-                    species = spriteInfo[battlerId].transformSpecies;
-            }
+                mon = &gEnemyParty[gBattlerPartyIndexes[battlerId]];
             else
-            {
-                spriteInfo = gBattleSpritesDataPtr->battlerData;
-                if (!spriteInfo[battlerId].transformSpecies)
-                    species = GetMonData(&gPlayerParty[gBattlerPartyIndexes[battlerId]], MON_DATA_SPECIES);
-                else
-                    species = spriteInfo[battlerId].transformSpecies;
-            }
+                mon = &gPlayerParty[gBattlerPartyIndexes[battlerId]];
+            
+            spriteInfo = gBattleSpritesDataPtr->battlerData;
+            if (!spriteInfo[battlerId].transformSpecies)
+                species = GetMonData(mon, MON_DATA_SPECIES);
+            else
+                species = spriteInfo[battlerId].transformSpecies;
         }
         if (coordType == BATTLER_COORD_Y_PIC_OFFSET)
             retVal = GetBattlerSpriteFinal_Y(battlerId, species, TRUE);
@@ -2094,7 +2089,7 @@ u8 GetBattlerSpriteBGPriorityRank(u8 battlerId)
 }
 
 // Create pokemon sprite to be used for a move animation effect (e.g. Role Play / Snatch)
-u8 CreateAdditionalMonSpriteForMoveAnim(u16 species, bool8 isBackpic, u8 id, s16 x, s16 y, u8 subpriority, u32 personality, u32 trainerId, u32 battlerId, bool32 ignoreDeoxysForm)
+u8 CreateAdditionalMonSpriteForMoveAnim(u16 species, bool8 isBackpic, u8 id, s16 x, s16 y, u8 subpriority, u32 personality, u32 trainerId, u32 battlerId, bool32 ignoreDeoxysForm, u8 phenotype)
 {
     u8 spriteId;
     u16 sheet = LoadSpriteSheet(&sSpriteSheets_MoveEffectMons[id]);
@@ -2104,35 +2099,35 @@ u8 CreateAdditionalMonSpriteForMoveAnim(u16 species, bool8 isBackpic, u8 id, s16
         gMonSpritesGfxPtr->buffer = AllocZeroed(0x2000);
     if (!isBackpic)
     {
-        LoadCompressedPalette(GetMonSpritePalFromSpeciesAndPersonality(species, trainerId, personality), (palette * 0x10) + 0x100, 0x20);
+        LoadCompressedPalette(GetMonSpritePalFromSpeciesAndPersonality(species, trainerId, personality, phenotype), (palette * 0x10) + 0x100, 0x20);
         if (ignoreDeoxysForm == TRUE || ShouldIgnoreDeoxysForm(5, battlerId) == TRUE || gBattleSpritesDataPtr->battlerData[battlerId].transformSpecies != 0)
-            LoadSpecialPokePic_DontHandleDeoxys(&gMonFrontPicTable[species],
-                                                gMonSpritesGfxPtr->buffer,
+            LoadSpecialPokePic_DontHandleDeoxys(gMonSpritesGfxPtr->buffer,
                                                 species,
                                                 personality,
-                                                TRUE);
+                                                TRUE, 
+                                                phenotype);
         else
-            LoadSpecialPokePic_2(&gMonFrontPicTable[species],
-                                 gMonSpritesGfxPtr->buffer,
+            LoadSpecialPokePic(gMonSpritesGfxPtr->buffer,
                                  species,
                                  personality,
-                                 TRUE);
+                                 TRUE,
+                                 phenotype);
     }
     else
     {
-        LoadCompressedPalette(GetMonSpritePalFromSpeciesAndPersonality(species, trainerId, personality), (palette * 0x10) + 0x100, 0x20);
+        LoadCompressedPalette(GetMonSpritePalFromSpeciesAndPersonality(species, trainerId, personality, phenotype), (palette * 0x10) + 0x100, 0x20);
         if (ignoreDeoxysForm == TRUE || ShouldIgnoreDeoxysForm(5, battlerId) == TRUE || gBattleSpritesDataPtr->battlerData[battlerId].transformSpecies != 0)
-            LoadSpecialPokePic_DontHandleDeoxys(&gMonBackPicTable[species],
-                                                gMonSpritesGfxPtr->buffer,
+            LoadSpecialPokePic_DontHandleDeoxys(gMonSpritesGfxPtr->buffer,
                                                 species,
                                                 personality,
-                                                FALSE);
+                                                FALSE,
+                                                phenotype);
         else
-            LoadSpecialPokePic_2(&gMonBackPicTable[species],
-                                 gMonSpritesGfxPtr->buffer,
+            LoadSpecialPokePic(gMonSpritesGfxPtr->buffer,
                                  species,
                                  personality,
-                                 FALSE);
+                                 FALSE,
+                                 phenotype);
     }
 
     RequestDma3Copy(gMonSpritesGfxPtr->buffer, (void *)(OBJ_VRAM0 + (sheet * 0x20)), MON_PIC_SIZE, 1);

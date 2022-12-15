@@ -91,7 +91,11 @@
 #define MAX_STAT_STAGE    12
 
 // Shiny odds
-#define SHINY_ODDS 8 // Actual probability is SHINY_ODDS/65536
+#define SHINY_ODDS 8 // Actual probability is SHINY_ODDS/65536; Depricated in favor of genetics
+
+// Genetics mutation odds. 724 creates almost the same odds of a wild/mutant shiny as vanilla
+#define WILD_MUTATION_ODDS 33000 // Actual probability is WILD_MUTATION_ODDS/65536
+#define EGG_MUTATION_ODDS 724 // Actual probability is EGG_MUTATION_ODDS/65536
 
 // Ribbon IDs used by TV and Pokénav
 #define CHAMPION_RIBBON       0
@@ -200,7 +204,6 @@
 #define MAX_PER_STAT_EVS 255
 #define MAX_TOTAL_EVS 510
 #define EV_ITEM_RAISE_LIMIT 100
-
 // Battle move flags
 #define FLAG_MAKES_CONTACT          (1 << 0)
 #define FLAG_PROTECT_AFFECTED       (1 << 1)
@@ -208,6 +211,7 @@
 #define FLAG_SNATCH_AFFECTED        (1 << 3)
 #define FLAG_MIRROR_MOVE_AFFECTED   (1 << 4)
 #define FLAG_KINGS_ROCK_AFFECTED    (1 << 5)
+
 
 // Growth rates
 #define GROWTH_MEDIUM_FAST  0
@@ -231,7 +235,6 @@
 
 #define F_SUMMARY_SCREEN_FLIP_SPRITE 0x80
 
-// Evolution types
 #define EVO_FRIENDSHIP       1  // Pokémon levels up with friendship ≥ 220
 #define EVO_FRIENDSHIP_DAY   2  // Pokémon levels up during the day with friendship ≥ 220
 #define EVO_FRIENDSHIP_NIGHT 3  // Pokémon levels up at night with friendship ≥ 220
