@@ -2225,12 +2225,15 @@ u32 GetShinyPersonality(u32 otId)
 {
     u32 shinyValue;
     u32 personality;
+    u32 counter = 0;
+    u32 maxTries = 1000;
     do
     {
         // Choose random personalities until one results in a shiny Pokémon
         personality = Random32();
         shinyValue = GET_SHINY_VALUE(otId, personality);
-    } while (shinyValue >= SHINY_ODDS);
+        counter++;
+    } while (shinyValue >= SHINY_ODDS && counter <= maxTries);
     return personality;
 }
 u32 GetNonShinyPersonality(u32 otId)

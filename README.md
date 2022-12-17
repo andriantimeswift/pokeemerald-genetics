@@ -1,31 +1,17 @@
-# Pokémon Emerald
+# Pokemon Genetics
 
-This is a decompilation of Pokémon Emerald.
+This is a feature branch for the pret decompilation of Pokemon Emerald that adds genetics and individual physical variation to Pokemon. These changes are VISUAL ONLY and do not modify the way Pokemon stats are generated or inherited. In practical terms, this means that Pokemon will have a lot more variation in their appearance than we get in vanilla, and that the special elements of a Pokemon's appearance can be inherited by its offspring.
 
-It builds the following ROM:
+Pokemon can now have different skin/fur colors, different eye colors, alternative patterns, or distinctive physical traits like bigger (or smaller) horns, extra (or less) fur, etc. These new traits can be mixed and matched, giving Pokemon an order of magnitude more individual variation. Because these traits are heritable in a way that mimics real-life genetics (though greatly simplified), it's possible to breed for a particular combination of traits.
 
-* [**pokeemerald.gba**](https://datomatic.no-intro.org/index.php?page=show_record&s=23&n=1961) `sha1: f3ae088181bf583e55daf962a92bb46f4f1d07b7`
+While the basic functionality is complete, I have not yet finished creating all the graphics files for each Pokemon species. In the meantime, these files are filled with dummies which will result in the appearance of those Pokemon being as they are in vanilla, regardless of their underlying genetics.
 
-To set up the repository, see [INSTALL.md](INSTALL.md).
+## The basics of Pokemon genetics
 
+I have added a genome to the Pokemon data structure. This takes the form of two 8-bit integers that occupy some of the unused space in the data structure, so this feature should be trade compatible with vanilla games (currently untested). These variables can be thought of as the Pokemon's chromosomes. When Pokemon breed, the baby inherit one half of its genome from the father, and the other half from the mother. Wild Pokemon have their genomes determined randomly. 
 
-## See also
+Each bit of these variables represents a single gene, and, being a bit, has two possible states - 0 and 1. A 0 represents the wild type variant (allele) for this gene - that is, the normal appearance for that Pokemon species - while a 1 represents an alternative allele. If a Pokemon has two 1's in the same bit of each genome variable, then the alternate trait will manifest in the Pokemon's appearance. Otherwise, it will have the wild type version of that trait. The collection of traits (wild and alternate) which the Pokemon has is referred to as its phenotype. In technical terms, the wild type is dominant, while the alternate traits are recessive.
 
-Other disassembly and/or decompilation projects:
-* [**Pokémon Red and Blue**](https://github.com/pret/pokered)
-* [**Pokémon Gold and Silver (Space World '97 demo)**](https://github.com/pret/pokegold-spaceworld)
-* [**Pokémon Yellow**](https://github.com/pret/pokeyellow)
-* [**Pokémon Trading Card Game**](https://github.com/pret/poketcg)
-* [**Pokémon Pinball**](https://github.com/pret/pokepinball)
-* [**Pokémon Stadium**](https://github.com/pret/pokestadium)
-* [**Pokémon Gold and Silver**](https://github.com/pret/pokegold)
-* [**Pokémon Crystal**](https://github.com/pret/pokecrystal)
-* [**Pokémon Ruby and Sapphire**](https://github.com/pret/pokeruby)
-* [**Pokémon Pinball: Ruby & Sapphire**](https://github.com/pret/pokepinballrs)
-* [**Pokémon FireRed and LeafGreen**](https://github.com/pret/pokefirered)
-* [**Pokémon Mystery Dungeon: Red Rescue Team**](https://github.com/pret/pmd-red)
+To make this clearer, let's look at an example. One trait the genome now controls is whether a Pokemon is shiny or not. The wild type for this gene is non-shiny, while the alternate trait is shiny. A Pokemon will only be shiny if the bit in both genome variables that controls the shiny trait is a 1. If either of these bits is a 0, it will be non-shiny. This means that any given Pokemon will be in one of three states with regards to whether it is shiny. 1) The pokemon can have two non-shiny alleles (homozygous dominant), two shiny alleles (homozygous recessive), or one of each (heterozygous).
 
-
-## Contacts
-
-You can find us on [Discord](https://discord.gg/d5dubZ3) and [IRC](https://web.libera.chat/?#pret).
+When two Pokemon breed, a random selection of each parent's genes are passed on to the offspring. There is also a chance that the baby will be born with a mutation - that is, one or more of its genes may be different from the one it would normally have inherited. Because of this, as well as the possibility that parents may be heterozygous, it's possible for a baby Pokemon to be born with a trait that neither parent has.
