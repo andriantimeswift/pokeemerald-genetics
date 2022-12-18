@@ -2268,8 +2268,6 @@ void CreateBoxMon(struct BoxPokemon *boxMon, u16 species, u8 level, u8 fixedIV, 
     u16 checksum;
     u8 i;
     u8 availableIVs[NUM_STATS];
-    DebugPrintf("Input Genes 1: %d", IntToBinary(genes1));
-    DebugPrintf("Input Genes 2: %d", IntToBinary(genes2));
 
     ZeroBoxMonData(boxMon);
 
@@ -2317,9 +2315,6 @@ void CreateBoxMon(struct BoxPokemon *boxMon, u16 species, u8 level, u8 fixedIV, 
             }
         }
     }
-
-    DebugPrintf("Mid Genes 1: %d", IntToBinary(genes1));
-    DebugPrintf("Mid Genes 2: %d", IntToBinary(genes2));
 
     if (hasFixedPersonality)
     {
@@ -2398,10 +2393,6 @@ void CreateBoxMon(struct BoxPokemon *boxMon, u16 species, u8 level, u8 fixedIV, 
     }
 
     GiveBoxMonInitialMoveset(boxMon);
-
-    DebugPrintf("Output Genes1: %d", IntToBinary(genes1));
-    DebugPrintf("Output Genes2: %d", IntToBinary(genes2));
-    DebugPrintf("Output Phenotype: %d", IntToBinary(GetBoxMonData(boxMon, MON_DATA_PHENOTYPE)));
     }
 
 void CreateMonWithNature(struct Pokemon *mon, u16 species, u8 level, u8 fixedIV, u8 nature, u8 genes1, u8 genes2)
@@ -6617,8 +6608,16 @@ const u32 *GetMonSpritePalFromSpeciesAndPersonality(u16 species, u32 otId, u32 p
 {
     u32 shinyValue;
     static const u32 *pal;
-    u16 decompressedPal[16];
-    u16 tempPal[16];
+    u16 *decompressedPal;
+    u16 *tempPal;
+    u32 palSize = 16;
+    if (species == SPECIES_CASTFORM)
+    {
+        palSize = 16 * NUM_CASTFORM_FORMS;
+    }
+    decompressedPal = Alloc(palSize * sizeof(u16));
+    tempPal = Alloc(palSize * sizeof(u16));
+
     if (species > NUM_SPECIES)
         pal = gMonPaletteTable[SPECIES_NONE].data;
 
@@ -6633,8 +6632,9 @@ const u32 *GetMonSpritePalFromSpeciesAndPersonality(u16 species, u32 otId, u32 p
     GetMonPaletteFromPhenotype(decompressedPal, species, phenotype, tempPal, 0);
 
     pal = CompressSpritePalette(tempPal);
+    Free(decompressedPal);
+    Free(tempPal);
     return pal;
-    //THIS IS THE PALETTE FUNCTION
 }
 
 struct CompressedSpritePalette GetMonSpritePalStruct(struct Pokemon *mon)
@@ -6647,11 +6647,12 @@ struct CompressedSpritePalette GetMonSpritePalStruct(struct Pokemon *mon)
 }
 
 //Returns a new palette which is the result of alpha blending foreground over background. Coeff must be between 0 and 16.
-void AlphaBlendPalettes(u16 basePalette[16], u16 modifierPalette[16], u32 coeff, u16 outputPalette[16])
+void AlphaBlendPalettes(u16 *basePalette, u16 *modifierPalette, u32 coeff, u16 *outputPalette, u32 paletteSize)
 {
     u32 coeffMax = 16;
     u32 i;
-    for (i = 0; i < 16; i++)
+
+    for (i = 0; i < paletteSize; i++)
     {
         struct PlttData *background = (struct PlttData *)&basePalette[i];
         struct PlttData *foreground = (struct PlttData *)&modifierPalette[i];
@@ -6661,10 +6662,10 @@ void AlphaBlendPalettes(u16 basePalette[16], u16 modifierPalette[16], u32 coeff,
     } 
 }
 
-void ModifyPalette(u16 basePalette[16], u16 modifierPalette[16], u16 outputPalette[16])
+void ModifyPalette(u16 *basePalette, u16 *modifierPalette, u16 *outputPalette, u32 paletteSize)
 {
     u32 i;
-    for (i = 0; i < 16; i++)
+    for (i = 0; i < paletteSize; i++)
     {
         if (modifierPalette[i] != 0)
             outputPalette[i] = modifierPalette[i];
@@ -6704,15 +6705,28 @@ u32 *CompressSpritePalette(const u16 *data)
 
 void GetMonPaletteFromPhenotype(u16 basePalette[], u16 species, u8 phenotype, u16 outputPalette[], u16 *tag)
 {
-    u16 pal[16];
-    u16 albinoPal[16];
+    u16 *pal;
+    u16 *albinoPal;
     u16 *albinoTag;
-    u16 melanisticPal[16];
+    u16 *melanisticPal;
     u16 *melanisticTag;
-    u16 tempPal[16];
-    u16 palCopy[16];
+    u16 *tempPal;
+    u16 *palCopy;
     u32 i;
-    for(i = 0; i < 16; i++)
+    u32 palSize = 16;
+
+    if (species == SPECIES_CASTFORM)
+    {
+        palSize = 16 * NUM_CASTFORM_FORMS;
+    }
+
+    pal = Alloc(palSize * sizeof(u16));
+    albinoPal = Alloc(palSize * sizeof(u16));
+    melanisticPal = Alloc(palSize * sizeof(u16));
+    tempPal = Alloc(palSize * sizeof(u16));
+    palCopy = Alloc(palSize * sizeof(u16));
+    
+    for(i = 0; i < palSize; i++)
     {
         pal[i] = basePalette[i];
     }
@@ -6723,7 +6737,6 @@ void GetMonPaletteFromPhenotype(u16 basePalette[], u16 species, u8 phenotype, u1
         LZDecompressWram(gMonMelanisticShinyPaletteTable[species].data, melanisticPal);
         albinoTag = (u16 *) &gMonAlbinoShinyPaletteTable[species].tag;
         melanisticTag = (u16 *) &gMonMelanisticShinyPaletteTable[species].tag;
-        DebugPrintf("Shiny!", 0);
     }
     else
     {
@@ -6736,22 +6749,20 @@ void GetMonPaletteFromPhenotype(u16 basePalette[], u16 species, u8 phenotype, u1
 
     if (((phenotype >> ALBINO_GENE_INDEX) & 1) && !((phenotype >> ALBINO_FADE_GENE_INDEX) & 1))
     {
-        for(i = 0; i < 16; i++)
+        for(i = 0; i < palSize; i++)
         {
             pal[i] = albinoPal[i];
         }
         tag = albinoTag;
-        DebugPrintf("Albino!", 0);
     }
 
     if (((phenotype >> MELANISTIC_GENE_INDEX) & 1) && !((phenotype >> MELANISTIC_FADE_GENE_INDEX) & 1))
     {
-        for(i = 0; i < 16; i++)
+        for(i = 0; i < palSize; i++)
         {
             pal[i] = melanisticPal[i];
         }
         tag = melanisticTag;
-        DebugPrintf("Melanistic!", 0);
     }
 
     if (((phenotype >> ALBINO_GENE_INDEX) & 1) && ((phenotype >> ALBINO_FADE_GENE_INDEX) & 1))
@@ -6761,20 +6772,17 @@ void GetMonPaletteFromPhenotype(u16 basePalette[], u16 species, u8 phenotype, u1
         {
             if (phenotype >> MELANISTIC_FADE_GENE_INDEX)
             {
-                DebugPrintf("Albino Fade Melanistic Fade!", 0);
-                AlphaBlendPalettes(basePalette, albinoPal, 8, pal);
-                AlphaBlendPalettes(pal, melanisticPal, 8, pal);
+                AlphaBlendPalettes(basePalette, albinoPal, 8, pal, palSize);
+                AlphaBlendPalettes(pal, melanisticPal, 8, pal, palSize);
             }
             else
             {
-                AlphaBlendPalettes(melanisticPal, albinoPal, 8, pal);
-                DebugPrintf("Albino Fade Melanistic!", 0);
+                AlphaBlendPalettes(melanisticPal, albinoPal, 8, pal, palSize);
             }
         }
         else
         {
-            AlphaBlendPalettes(basePalette, albinoPal, 8, pal);
-            DebugPrintf("Albino Fade!", 0);
+            AlphaBlendPalettes(basePalette, albinoPal, 8, pal, palSize);
         }
     }
 
@@ -6783,62 +6791,61 @@ void GetMonPaletteFromPhenotype(u16 basePalette[], u16 species, u8 phenotype, u1
         tag = melanisticTag;
         if (!(phenotype >> ALBINO_GENE_INDEX))
         {
-            AlphaBlendPalettes(basePalette, melanisticPal, 8, pal);
-            DebugPrintf("Melanistic Fade Albino!", 0);
+            AlphaBlendPalettes(basePalette, melanisticPal, 8, pal, palSize);
         }
     }
 
     if ((phenotype >> ALT_PATTERN_GENE_INDEX) & 1)
     {
         
-        for(i = 0; i < 16; i++)
+        for(i = 0; i < palSize; i++)
         {
             palCopy[i] = pal[i];
         }
         if (phenotype >> ALT_PATTERN_ALT_COLOR_GENE_INDEX)
         {
             LZDecompressWram(gMonAltPatternAltColorPaletteTable[species].data, tempPal);
-            DebugPrintf("Alt Pattern!", 0);
         }
         else
         {
             LZDecompressWram(gMonAltPatternPaletteTable[species].data, tempPal);
-            DebugPrintf("Alt Pattern Alt Color!", 0);
         }
 
-        ModifyPalette(palCopy, tempPal, pal);
+        ModifyPalette(palCopy, tempPal, pal, palSize);
     }
 
-    for(i = 0; i < 16; i++)
+    for(i = 0; i < palSize; i++)
     {
         outputPalette[i] = pal[i];
     }
+
+    Free(pal);
+    Free(albinoPal);
+    Free(melanisticPal);
+    Free(tempPal);
+    Free(palCopy);
 }
 
 struct CompressedSpritePalette GetMonSpritePalStructFromOtIdPersonality(u16 species, u32 otId , u32 personality, u8 phenotype)
 {
     u32 shinyValue;
-    u16 decompressedPal[16];
+    u16 *decompressedPal;
     struct CompressedSpritePalette pal;
-    static u16 tempPal[16];
+    static u16 *tempPal;
     u32 i;
     struct CompressedSpritePalette newPal;
 
-
     shinyValue = GET_SHINY_VALUE(otId, personality);
     if (shinyValue < SHINY_ODDS)
-        return gMonShinyPaletteTable[species];
+        pal = gMonShinyPaletteTable[species];
     else
-        return gMonPaletteTable[species];
+        pal =  gMonPaletteTable[species];
 
     LZDecompressWram(pal.data, decompressedPal);
     newPal.tag = pal.tag;
     GetMonPaletteFromPhenotype(decompressedPal, species, phenotype, tempPal, &newPal.tag);
     newPal.data = CompressSpritePalette(tempPal);
     pal = newPal;
-    return pal;
-    //THIS IS THE PALETTE FUNCTION?
-
 }
 
 bool32 IsHMMove2(u16 move)
