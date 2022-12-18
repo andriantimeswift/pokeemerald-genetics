@@ -2226,7 +2226,7 @@ u32 GetShinyPersonality(u32 otId)
     u32 shinyValue;
     u32 personality;
     u32 counter = 0;
-    u32 maxTries = 1000;
+    u32 maxTries = 10000;
     do
     {
         // Choose random personalities until one results in a shiny Pokémon
@@ -6674,7 +6674,7 @@ void ModifyPalette(u16 basePalette[16], u16 modifierPalette[16], u16 outputPalet
 }
 
 // WARNING: You'll want to load the returned palette before you call CompressSpritePalette again, else you'll get weird results.
-u32 *CompressSpritePalette(const u16 data[16])
+u32 *CompressSpritePalette(const u16 *data)
 {
     static EWRAM_DATA u32 *csp;
     static EWRAM_DATA u32 buffer[40 / sizeof(u32)];
