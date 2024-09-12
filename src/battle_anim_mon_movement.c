@@ -164,20 +164,20 @@ void AnimTask_ShakeMon2(u8 taskId)
         if (spriteId == SPRITE_NONE)
             abort = TRUE;
     }
-    else if (gBattleAnimArgs[0] != 8)
+    else if (gBattleAnimArgs[0] != ANIM_ATTACKER_FORCE)
     {
         switch (gBattleAnimArgs[0])
         {
-        case 4:
+        case ANIM_PLAYER_LEFT:
             battlerId = GetBattlerAtPosition(B_POSITION_PLAYER_LEFT);
             break;
-        case 5:
+        case ANIM_PLAYER_RIGHT:
             battlerId = GetBattlerAtPosition(B_POSITION_PLAYER_RIGHT);
             break;
-        case 6:
+        case ANIM_OPPONENT_LEFT:
             battlerId = GetBattlerAtPosition(B_POSITION_OPPONENT_LEFT);
             break;
-        case 7:
+        case ANIM_OPPONENT_RIGHT:
         default:
             battlerId = GetBattlerAtPosition(B_POSITION_OPPONENT_RIGHT);
             break;
@@ -535,7 +535,7 @@ static void SlideMonToOriginalPos_Step(struct Sprite *sprite)
 }
 
 // Linearly translates a mon to a target offset. The horizontal offset
-// is mirrored for the opponent's pokemon, and the vertical offset
+// is mirrored for the opponent's Pokémon, and the vertical offset
 // is only mirrored if arg 3 is set to 1.
 // arg 0: 0 = attacker, 1 = target
 // arg 1: target x pixel offset
