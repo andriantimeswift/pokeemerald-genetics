@@ -4020,9 +4020,9 @@ const u32 gMonBackPicSpecialTrait_Lanturn[] = INCBIN_U32("graphics/pokemon/lantu
 
 
 
-const u32 gMonStillFrontPicSpecialTrait_Pichu[] = INCBIN_U32("graphics/pokemon/Pichu/front_special_trait.4bpp.lz");
+const u32 gMonStillFrontPicSpecialTrait_Pichu[] = INCBIN_U32("graphics/pokemon/pichu/front_special_trait.4bpp.lz");
 
-const u32 gMonBackPicSpecialTrait_Pichu[] = INCBIN_U32("graphics/pokemon/Pichu/back_special_trait.4bpp.lz");
+const u32 gMonBackPicSpecialTrait_Pichu[] = INCBIN_U32("graphics/pokemon/pichu/back_special_trait.4bpp.lz");
 
 
 
