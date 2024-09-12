@@ -2817,7 +2817,7 @@ static void LoadTradeMonPic(u8 whichParty, u8 state)
         LoadCompressedSpritePalette(&palette);
         sTradeAnim->monSpecies[whichParty] = species;
         sTradeAnim->monPersonalities[whichParty] = personality;
-        sTradeData->monPhenotypes[whichParty] = phenotype;
+        sTradeAnim->monPhenotypes[whichParty] = phenotype;
         break;
     case 1:
         palette = GetMonSpritePalStruct(mon);
@@ -3809,11 +3809,11 @@ static bool8 DoTradeAnim_Cable(void)
     case STATE_POKEBALL_ARRIVE_WAIT:
         if (gSprites[sTradeAnim->bouncingPokeballSpriteId].callback == SpriteCallbackDummy)
         {
-            HandleLoadSpecialPokePic_2(&gMonFrontPicTable[sTradeAnim->monSpecies[TRADE_PARTNER]],
-                                        gMonSpritesGfxPtr->sprites.ptr[B_POSITION_OPPONENT_RIGHT],
-                                        sTradeAnim->monSpecies[TRADE_PARTNER],
-                                        sTradeAnim->monPersonalities[TRADE_PARTNER],
-                                        sTradeData->monPhenotypes[TRADE_PARTNER]);
+            HandleLoadSpecialPokePic(TRUE, 
+                                    gMonSpritesGfxPtr->sprites.ptr[B_POSITION_OPPONENT_RIGHT], 
+                                    sTradeAnim->monSpecies[TRADE_PARTNER], 
+                                    sTradeAnim->monPersonalities[TRADE_PARTNER], 
+                                    sTradeAnim->monPhenotypes[TRADE_PARTNER]);
             sTradeAnim->state++;
         }
         break;
@@ -4307,11 +4307,10 @@ static bool8 DoTradeAnim_Wireless(void)
     case STATE_POKEBALL_ARRIVE_WAIT:
         if (gSprites[sTradeAnim->bouncingPokeballSpriteId].callback == SpriteCallbackDummy)
         {
-            HandleLoadSpecialPokePic_2(&gMonFrontPicTable[sTradeAnim->monSpecies[TRADE_PARTNER]],
-                                        gMonSpritesGfxPtr->sprites.ptr[B_POSITION_OPPONENT_RIGHT],
+            HandleLoadSpecialPokePic(TRUE, gMonSpritesGfxPtr->sprites.ptr[B_POSITION_OPPONENT_RIGHT],
                                         sTradeAnim->monSpecies[TRADE_PARTNER],
-                                        sTradeAnim->monPersonalities[TRADE_PARTNER],
-                                        sTradeData->monPhenotypes[TRADE_PARTNER]);
+                                        sTradeAnim->monPersonalities[TRADE_PARTNER], 
+                                        sTradeAnim->monPhenotypes[TRADE_PARTNER]);
             sTradeAnim->state++;
         }
         break;
